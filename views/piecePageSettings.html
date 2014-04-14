@@ -1,0 +1,8 @@
+{# Notice that you do not have to override this - it'll show whatever #}
+{# your schema is. You are allowed to though. #}
+
+{% include 'formMacros.html' %}
+{% include "schemas:schemaMacros.html" %}
+<div class="apos-template {{ pageSettingsClass }}">
+{{ schemaFields(fields) }}
+</div>

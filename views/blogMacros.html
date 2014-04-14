@@ -1,0 +1,54 @@
+{% include 'pagerMacros.html' %}
+{# use renderBlogPosts to show all pieces as full posts on a page #}
+
+{% macro renderBlogPosts(pieces, pageUrl) %}
+  {% if pieces %}
+    {% for piece in pieces %}
+      {{ renderBlogPost(piece, pageUrl) }}
+    {% endfor %}
+  {% else %}
+    <h4>{{ __('There are no blog posts yet.') }}</h4>
+  {% endif %}
+{% endmacro %}
+
+{% macro renderBlogPost(piece, pageUrl) %}
+  <div class="apos-blog-post">
+    <div class="apos-blog-post-heading">
+      <h4><a href="{{ piece.url }}">{{ piece.title | e }}</a></h4>
+      <div class="blog-title-divider"></div>
+      <h6>{{ piece.publishedAt | date("MMM DD, YYYY") }}</h6>
+    </div>
+    <div class="apos-blog-post-body">{{ aposArea(piece, 'body') }}</div>
+    {% if piece.tags %}
+      <div class="apos-blog-tags">
+        {{ __('File under') }}: {{ piece.tags|join(', ') }}
+      </div>
+    {% endif %}
+{% endmacro %}
+
+{# ...or use renderBlogPostPreviews to show previews of all pieces on a page (date and title) #}
+
+{% macro renderBlogPostPreviews(pieces, pageUrl) %}
+  {% if pieces %}
+    {% for piece in pieces %}
+      {{ renderBlogPostPreview(piece, pageUrl) }}
+    {% endfor %}
+  {% else %}
+    <h4>{{ __('There are no blog posts yet.') }}</h4>
+  {% endif %}
+{% endmacro %}
+
+{% macro renderBlogPostPreview(piece, pageUrl) %}
+  <div class="apos-blog-post-preview">
+    <div class="apos-blog-post">
+      <div class="apos-blog-date">
+       <h4><a href="{{ piece.url }}">{{ piece.publishedAt | date("MMM") }}</a></h4>
+        <h3><a href="{{ piece.url }}">{{ piece.publishedAt | date("DD") }}</a></h4>
+      </div>
+      <div class="apos-blog-title">
+        <h4><a href="{{ piece.url }}">{{ piece.title | e }}</a></h4>
+      </div>
+      {# TODO: add byline once the author field is worked out in A2 #}
+    </div>
+  </div>
+{% endmacro %}

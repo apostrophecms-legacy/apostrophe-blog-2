@@ -1,0 +1,30 @@
+{
+  "name": "apostrophe-blog-2",
+  "version": "0.5.0",
+  "description": "A next-generation blog for A2. Blogs and blog posts are ordinary pages with a few fancy features, so that blog posts have a natural and obvious permanent URL on the site but aggreation and blog-style browsing are still possible.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/punkave/apostrophe-blog-2.git"
+  },
+  "keywords": [
+    "blog",
+    "a2",
+    "apostrophe",
+    "cms"
+  ],
+  "author": "P'unk Avenue LLC",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/punkave/apostrophe-blog-2/issues"
+  },
+  "homepage": "https://github.com/punkave/apostrophe-blog-2",
+  "dependencies": {
+    "apostrophe-fancy-page": "^0.5.3",
+    "async": "^0.6.2",
+    "lodash": "^2.4.1"
+  }
+}

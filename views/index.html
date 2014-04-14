@@ -1,0 +1,144 @@
+{% extends "layout.html" %}
+
+{% include "blogMacros.html" %}
+
+{% block bodyClass %}{{ super() }} apos-blog-page{% endblock %}
+
+{# 'here()' returns the URL of the page, with the year and month added if we are #}
+{# viewing by month, plus any query string based on active filters. You can pass #}
+{# 'changes' to override filters. Passing null for a filter removes it. #}
+
+{%- macro here(changes) -%}
+  {{ page.url | build([ 'year', 'month' ], { year: activeYear, month: activeMonth, tag: query.tag }, changes) }}
+{%- endmacro -%}
+
+{# Output the current content of the page, with buttons to edit it #}
+
+{% block mainContent %}
+
+  <div class="blog-filter clearfix">
+
+    {# View by Month or View Recent #}
+    {% if defaultView %}
+      <div class="filter-element view-by-month-button"><h4><a href="{{ here({ year: thisYear, month: thisMonth }) }}">{{ __('View Articles by Month') }}</a></h4></div>
+    {% else %}
+      <div class="filter-element view-recent-button"><h4><a href="{{ here({ year: null, month: null }) }}">{{ __('View Recent Articles') }}</a></h4></div>
+    {% endif %}
+
+    {# the filter, which is only visible if there are tags present #}
+    <div class="filter-element filter-select-container">
+      {% if allTags.length %}
+          <label for="type-filter">{{ __('Filter by') }} </label>
+          <select id="snippets-tag-filter" name="type-filter">
+            <option value="{{ here({ tag: null }) }}">{{ __('All') }}</option>
+            {%- for tag in allTags -%}
+              {%- if tag.length -%}
+                <option {% if query.tag == tag %}selected{%endif %} value="{{ here({ tag: tag }) }}">{{ tag }}</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+      {% endif %}
+    </div>
+
+    {# Title of current view (shows month forward and backward controls in month view) #}
+    {% if defaultView %}
+      <div class="filter-element active-view"><h4>{{ __('Recent Articles') }}</h4></div>
+    {% else %}
+      <div class="filter-element current-month">
+        <h4 class="month browse-by-month active">
+          <a class="month-previous" href="{{ here({ year: prevYear, month: prevMonth }) }}">&laquo;</a>
+          <span class="month current">{{ (activeYear + '-' + activeMonth + '-01') | date('MMMM YYYY') }}</span>
+          <a class="month-next" href="{{ here({ year: nextYear, month: nextMonth }) }}">&raquo;</a>
+        </h4>
+      </div>
+    {% endif %}
+
+  </div>
+
+  <div class="column">
+
+    {% if page.children.length %}
+      <div class="column-element">
+
+        {% block subnav %}
+          <div class="subnavigation">
+            <h4>{{ __('Subpages') }}</h4>
+            <p>{{ __('Blog posts have tags, and that means you can create a blog subpage that only shows a certain set of tags. Try it out!') }}</p>
+            <ol class="children">
+            {% for relative in page.children %}
+              <li><a href="{{ relative.url }}">{{ relative.title | e }}</a></li>
+            {% endfor %}
+            </ol>
+          </div>
+        {% endblock %}
+
+      </div>
+    {% endif %}
+
+    {% set filteredFeed = here({ 'feed': 'rss' }) %}
+    {% set fullFeed = page.url | build({ 'feed': 'rss' }) %}
+
+    <div class="column-element filter-links">
+
+      {# RSS auto discovery #}
+      {% block extraHead %}
+        <link rel="alternate" type="application/rss+xml" title="{{ page.title | e }}" href="{{ filteredFeed or fullFeed }}" />
+      {% endblock %}
+
+      {% if filteredFeed != fullFeed %}
+        <h4><a href="{{ filteredFeed }}"><img src="/modules/snippets/images/feed-icon-16x16.png" /> {{ __('Filtered RSS Feed') }}</a></h4>
+      {% endif %}
+      <h4><a href="{{ fullFeed }}"><img src="/modules/snippets/images/feed-icon-16x16.png" /> {{ __('Full RSS Feed') }}</a></h4>
+    </div>
+
+    <div class="column-element apos-area-sidebar">
+      {{ aposArea(
+        page,
+        'sidebar',
+        {
+          controls: ['style', 'bold', 'italic', 'createLink' ],
+          styles: [ { value:'div', label: 'Normal' }, { value: 'h4', label: 'Heading' } ]
+        }
+      ) }}
+    </div>
+
+  </div>
+
+  <div class="column-2">
+    <div class="apos-blog-posts">
+      {{ renderBlogPostPreviews(pieces, page.url) }}
+    </div>
+  </div>
+
+  {# TODO: set up a here() macro like we have in DR to implement #}
+  {# combinations of filters once we have them #}
+
+  <div class="full-width-column">
+    {{ renderPager(pager, here({})) }}
+  </div>
+
+  <script type="text/javascript">
+    var $eventFilter = $('select#snippets-tag-filter');
+
+    $eventFilter.on('change', function(event) {
+      window.location.href = $eventFilter.val();
+    });
+  </script>
+
+  {# Just uncomment this script block to enable infinite scroll instead! #}
+
+  {#
+  <script type="text/javascript">
+    $(function() {
+      $('.apos-refreshable .apos-blog-posts').bottomless({
+        url: {{ page.url | json }}
+      });
+      // We don't need the pager if we can infinite scroll
+      // However we hide it with JavaScript so that
+      // Google still finds it otherwise we have serious SEO issues!
+      $('.apos-refreshable .apos-pager').hide();
+    });
+  </script>
+  #}
+
+{% endblock %}
