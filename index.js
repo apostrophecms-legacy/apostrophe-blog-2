@@ -1,6 +1,9 @@
 var async = require('async');
 var _ = require('lodash');
 var fancyPage = require('apostrophe-fancy-page');
+var RSS = require('rss');
+var url = require('url');
+var absolution = require('absolution');
 
 module.exports = blog;
 
@@ -21,6 +24,31 @@ blog.Blog = function(options, callback) {
 
   // Mix in the ability to serve assets and templates
   self._apos.mixinModuleAssets(self, 'fancyPage', __dirname, options);
+
+  // Set defaults for feeds, but respect it if self._options.feed has been
+  // explicitly set false
+  if (self._options.feed === undefined) {
+    self._options.feed = {};
+  }
+  if (self._options.feed) {
+    var defaultPrefix;
+    // Let apostrophe-site clue us in to the name of the site so our feed title
+    // is not as bare as "Blog" or "Calendar"
+    if (self._options.site && self._options.site.title) {
+      // endash
+      defaultPrefix = self._options.site.title + (self._options.feed.titleSeparator || ' – ');
+    } else {
+      defaultPrefix = '';
+    }
+    _.defaults(self._options.feed, {
+      // Show the thumbnail singleton if available
+      thumbnail: true,
+      // If the thumbnail is not available and the body contains an image,
+      // show that instead
+      alternateThumbnail: true,
+      titlePrefix: defaultPrefix
+    });
+  }
 
   self.setupIndexes = function() {
     self.indexes = {};
@@ -193,6 +221,77 @@ blog.Blog = function(options, callback) {
   // the "index" behavior, override self.index or self.dispatch.
   self.beforeIndex = function(req, pieces, callback) {
     return callback(null);
+  };
+
+  // Given the value of the "feed" query parameter, return the appropriate
+  // content type. Right now feed is always rss and the return value is always
+  // application/rss+xml, but you can override to handle more types of feeds
+  self.feedContentType = function(feed) {
+    return 'application/rss+xml';
+  };
+
+  // Render a feed as a string, using the same data that we'd otherwise pass
+  // to the index template, notably data.pieces. req.query.feed specifies the
+  // type of feed, currently we assume RSS
+  self.renderFeed = function(data, req) {
+    // Lots of information we don't normally have in a page renderer.
+    var feedOptions = {
+      title: self._options.feed.title || ((self._options.feed.titlePrefix || '') + data.page.title),
+      description: self._options.feed.description,
+      generator: self._options.feed.generator || 'Apostrophe 2',
+      feed_url: req.absoluteUrl,
+      // Strip the ?feed=rss back off, in a way that works if there are other query parameters too
+      site_url: self._apos.build(req.absoluteUrl, { feed: null }),
+      image_url: self._options.feed.imageUrl
+    };
+    _.defaults(feedOptions, {
+      description: feedOptions.title
+    });
+    var feed = new RSS(feedOptions);
+    _.each(data.pieces, function(piece) {
+      feed.item(self.renderFeedPiece(piece, req));
+    });
+    return feed.xml('  ');
+  };
+
+  // Returns an object ready to be passed to the .item method of the rss module
+  self.renderFeedPiece = function(piece, req) {
+    var feedPiece = {
+      title: piece.title,
+      description: self.renderFeedPieceDescription(piece, req),
+      // Make it absolute
+      url: url.resolve(req.absoluteUrl, piece.url),
+      guid: piece._id,
+      author: piece.author || piece._author || undefined,
+      // A bit of laziness that covers derivatives of our blog, our events,
+      // and everything else
+      date: piece.publishedAt || piece.start || piece.createdAt
+    };
+    return feedPiece;
+  };
+
+  /**
+   * Given an piece and a req object, should return HTML suitable for use in an RSS
+   * feed to represent the body of the piece. Note that any URLs must be absolute.
+   * Hint: req.absoluteUrl is useful to resolve relative URLs. Also the
+   * absolution module.
+   * @param  {Object} piece The snippet in question
+   * @param  {Object} req  Express request object
+   * @return {String}      HTML representation of the body of the piece
+   */
+  self.renderFeedPieceDescription = function(piece, req) {
+    // Render a partial for this individual feed piece. This lets us use
+    // aposArea and aposSingleton normally etc.
+    var result = self.renderer('feedPiece')({
+      page: req.page,
+      piece: piece,
+      url: req.absoluteUrl,
+      options: self._options.feed
+    });
+    // We have to resolve all the relative URLs that might be kicking around
+    // in the output to generate valid HTML for use in RSS
+    result = absolution(result, req.absoluteUrl).trim();
+    return result;
   };
 
   // This method extends the mongodb criteria used to fetch pieces

@@ -1,0 +1,20 @@
+{% macro feedThumbnail(piece) %}
+  {% if aposAreaImage(piece, 'body') %}
+    {# Most but not all feed readers will ignore the float, but it's nice to try. #}
+    <img style="display: block; float: left; padding: 10px" src="{{ aposFilePath(aposAreaImage(piece, 'body'), { size: 'one-sixth' }) }}" />
+  {% endif %}
+{% endmacro %}
+
+{% macro feedBody(piece) %}
+  {% if piece.body %}
+    {% if options.summary %}
+      {{ aposAreaPlaintext({ area: piece.body, truncate: options.characters }) }}
+    {% else %}
+      {# This helper is good for bypassing all the outer wrapper markup of an area which is #}
+      {# unsuitable for RSS feeds #}
+      {# Ignore all widgets, simple HTML text only #}
+      {{ aposLog(piece) }}
+      {{ aposAreaContent(piece.body.items, { allowed: [ 'richText' ] }) }}
+    {% endif %}
+  {% endif %}
+{% endmacro %}
