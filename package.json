@@ -23,10 +23,10 @@
   },
   "homepage": "https://github.com/punkave/apostrophe-blog-2",
   "dependencies": {
-    "apostrophe-fancy-page": "^0.5.3",
-    "async": "^0.6.2",
-    "lodash": "^2.4.1",
-    "rss": "^0.3.2",
-    "absolution": "^1.0.0"
+    "apostrophe-fancy-page": "~0.5.3",
+    "async": "~0.6.2",
+    "lodash": "~2.4.1",
+    "rss": "~0.3.2",
+    "absolution": "~1.0.0"
   }
 }
