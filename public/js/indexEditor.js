@@ -17,7 +17,7 @@ function AposBlog(options) {
     // Menu item title = modal dialog title. A good workaround for
     // not having page type specific modals
     var title = $(this).text();
-    var $el = aposPages.newPage(page.slug, { type: options.pieceName, title: title });
+    var $el = aposPages.newPage(page.slug, { pageType: options.pieceName, title: title });
     return false;
   });
 }

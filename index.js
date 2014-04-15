@@ -350,7 +350,6 @@ blog.Blog = function(options, callback) {
             filterCriteria.$or = clauses;
           }
         }
-        console.log(filterCriteria);
       }
       // If options.publishedAt is 'any', we're in the admin interface and should be
       // able to see articles whose publication date has not yet arrived. Otherwise,
@@ -373,8 +372,6 @@ blog.Blog = function(options, callback) {
         ]
       };
 
-      console.log(JSON.stringify(criteria));
-
       return superPiecesGet(req, criteria, options, callback);
     };
 
@@ -385,7 +382,6 @@ blog.Blog = function(options, callback) {
 
     // Denormalize the publication date and time
     self.pieces.beforePutOne = function(req, slug, options, piece, callback) {
-      console.log('beforePutOne');
       // Pieces are always orphans - they don't appear
       // as subpages in navigation (because there are way too
       // many of them and you need to demonstrate some clue about
