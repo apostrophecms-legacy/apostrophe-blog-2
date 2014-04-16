@@ -5,22 +5,31 @@ var RSS = require('rss');
 var url = require('url');
 var absolution = require('absolution');
 
-module.exports = blog;
+module.exports = blogManager;
 
-function blog(options, callback) {
-  return new blog.Blog(options, callback);
+function blogManager(options, callback) {
+  return new blogManager.BlogManager(options, callback);
 }
 
-blog.Blog = function(options, callback) {
+blogManager.BlogManager = function(options, callback) {
   var self = this;
 
   options.modules = (options.modules || []).concat([ { dir: __dirname, name: 'blog-2' } ]);
 
+  self.name = options.name || 'BlogManager';
   self._apos = options.apos;
+  self._action = '/apos-' + self._apos.cssName(self.name);
   self._app = options.app;
   self._pages = options.pages;
   self._schemas = options.schemas;
   self._options = options;
+
+  self.pieceName = options.pieceName || 'blogPost';
+  self.pieceLabel = options.pieceLabel || 'Blog Post';
+  self.indexName = options.indexName || 'blog';
+  self.indexLabel = options.indexLabel || 'Blog';
+
+  self._browser = options.browser || {};
 
   // Mix in the ability to serve assets and templates
   self._apos.mixinModuleAssets(self, 'fancyPage', __dirname, options);
@@ -57,10 +66,8 @@ blog.Blog = function(options, callback) {
     self.indexes.options = indexesOptions;
 
     _.defaults(indexesOptions, {
-      name: 'blog',
-      label: 'Blog',
-      pieceLabel: 'Post',
-      pieceName: 'blogPost',
+      name: self.indexName,
+      label: self.indexLabel,
       apos: options.apos,
       app: options.app,
       pages: options.pages,
@@ -88,8 +95,8 @@ blog.Blog = function(options, callback) {
       // throwing in a new one
       contextMenu: [
         {
-          name: 'new-' + self._apos.cssName(indexesOptions.pieceName),
-          label: 'New ' + indexesOptions.pieceLabel
+          name: 'new-' + self._apos.cssName(self.pieceName),
+          label: 'New ' + self.pieceLabel
         },
         {
           name: 'new-page',
@@ -97,7 +104,7 @@ blog.Blog = function(options, callback) {
         },
         {
           name: 'edit-page',
-          label: indexesOptions.label + ' Settings'
+          label: self.indexLabel + ' Settings'
         },
         {
           name: 'versions-page',
@@ -112,10 +119,6 @@ blog.Blog = function(options, callback) {
           label: 'Reorganize'
         }
       ]
-    });
-    _.defaults(indexesOptions.browser.options, {
-      pieceName: indexesOptions.pieceName,
-      pieceLabel: indexesOptions.pieceLabel
     });
     fancyPage.FancyPage.call(self.indexes, indexesOptions, null);
 
@@ -359,8 +362,8 @@ blog.Blog = function(options, callback) {
     self.pieces.options = piecesOptions;
 
     _.defaults(piecesOptions, {
-      name: 'blogPost',
-      label: 'Post',
+      name: self.pieceName,
+      label: self.pieceLabel,
       apos: options.apos,
       app: options.app,
       pages: options.pages,
@@ -437,6 +440,21 @@ blog.Blog = function(options, callback) {
     self.pieces.get = function(req, userCriteria, options, callback) {
       var criteria;
       var filterCriteria = {};
+
+      if (options.fromPageIds) {
+        return self._apos.get(req, { _id: { $in: options.fromPageIds } }, { path: 1, level: 1 }, function(err, results) {
+          if (err) {
+            return callback(err);
+          }
+          // Recursive invocation now that we have enough finroatmion
+          // about the pages
+          var innerOptions = _.cloneDeep(options);
+          delete innerOptions.fromPageIds;
+          innerOptions.fromPages = results.pages;
+          return self.pieces.get(req, userCriteria, innerOptions, callback);
+        });
+      }
+
       if (options.fromPages) {
         var clauses = [];
         _.each(options.fromPages, function(page) {
@@ -511,6 +529,193 @@ blog.Blog = function(options, callback) {
 
   self.setupIndexes();
   self.setupPieces();
+
+  // By default we do want a widget for the blog
+  var widgetOptions = {};
+  if (self._options.widget === false) {
+    widgetOptions = false;
+  } else if (typeof(self._options.widget) === 'object') {
+    widgetOptions = self._options.widget;
+  }
+
+  // Data to push to browser-side manager object
+  var args = {
+    name: self.name,
+    pieceName: self.pieceName,
+    pieceLabel: self.pieceLabel,
+    indexName: self.indexName,
+    indexLabel: self.indexLabel,
+    action: self._action,
+    widget: widgetOptions
+  };
+
+  // Synthesize a constructor for the manager object on the browser side
+  // if there isn't one. This allows trivial subclassing of the blog for
+  // cases where no custom browser side code is actually needed
+  self._apos.pushGlobalCallWhen('user', 'AposBlogManager.subclassIfNeeded(?, ?, ?)', getBrowserConstructor(), getBaseBrowserConstructor(), args);
+  self._apos.pushGlobalCallWhen('user', '@ = new @(?)', getBrowserInstance(), getBrowserConstructor(), args);
+
+  function getBrowserInstance() {
+    if (self._browser.instance) {
+      return self._browser.instance;
+    }
+    var c = getBrowserConstructor();
+    return c.charAt(0).toLowerCase() + c.substr(1);
+  }
+
+  function getBrowserConstructor() {
+    return self._browser.construct || 'Apos' + self.name.charAt(0).toUpperCase() + self.name.substr(1);
+  }
+
+  // Figure out the name of the base class constructor on the browser side. If
+  // it's not explicitly set we assume we're subclassing snippets
+  function getBaseBrowserConstructor() {
+    return self._browser.baseConstruct || 'AposBlogManager';
+  }
+
+  if (widgetOptions) {
+    // We want widgets, so construct a manager object for them.
+    // Make sure it can see the main manager for the blog
+    var widget = {
+      _manager: self
+    };
+    (function(options) {
+      var self = widget;
+      self._apos = self._manager._apos;
+      self.icon = options.icon;
+      self.name = options.name || self._manager.indexes.name;
+      self.label = options.label || self._manager.indexes.label;
+      self.widget = true;
+      self.css = self._apos.cssName(self.name);
+
+      // For use in titling the "type part of a title" field
+      var titleField = _.find(self._manager.pieces.schema, function(field) {
+        return field.name === 'title';
+      }) || { label: 'Title' };
+
+      var widgetData = {
+        widgetEditorClass: 'apos-' + self.css + '-widget-editor',
+        pieceLabel: self._manager.pieces.label,
+        pluralPieceLabel: self._manager.pieces.pluralLabel,
+        indexLabel: self._manager.indexes.label,
+        pluralIndexLabel: self._manager.indexes.pluralLabel,
+        titleLabel: titleField.label
+      };
+
+      // Include our editor template in the markup when aposTemplates is called
+      self._manager.pushAsset('template', 'widgetEditor', {
+        when: 'user',
+        data: widgetData
+      });
+
+      // So far we've always kept this in the same file with the rest of the module's CSS,
+      // so don't clutter up the console with 404s in dev
+      // self.pushAsset('stylesheet', 'widget');
+
+      self.addCriteria = function(item, criteria, options) {
+        if ((item.by === 'tag') && (item.tags)) {
+          if (item.tags.length) {
+            criteria.tags = { $in: item.tags };
+          }
+          if (item.limit) {
+            options.limit = item.limit;
+          } else {
+            // Always set an upper limit
+            options.limit = 1000;
+          }
+        } else if ((item.by === 'id') && (item.ids)) {
+          // Specific IDs were selected, do not look at the limit
+          criteria._id = { $in: item.ids };
+        } else if (item.fromPageIds) {
+          options.fromPageIds = item.fromPageIds;
+        }
+      };
+
+      self.sanitize = function(item) {
+        item.by = self._apos.sanitizeSelect(item.by, [ 'id', 'tag', 'fromPageids' ], 'fromPageIds');
+        item.tags = self._apos.sanitizeTags(item.tags);
+        item.ids = self._apos.sanitizeIds(item.ids);
+        item.fromPageIds = self._apos.sanitizeIds(item.fromPageIds);
+        item.limit = self._apos.sanitizeInteger(item.limit, 5, 1, 1000);
+      };
+
+      self.renderWidget = function(data) {
+        return self._manager.render('widget', data);
+      };
+
+      self.addDiffLines = function(item, lines) {
+        if (item.by === 'id') {
+          lines.push(self.label + ': items selected: ' + ((item.ids && item.ids.length) || 0));
+        } else if (item.by === 'tag') {
+          lines.push(self.label + ': tags selected: ' + item.tags.join(', '));
+        } else if (item.by === 'fromPageIds') {
+          lines.push(self.label + ': sources selected: ' + ((item.fromPageIds && item.fromPageIds.length) || 0));
+        }
+      };
+
+      // Asynchronously load the content of the pieces we're displaying.
+      // The properties you add should start with an _ to denote that
+      // they shouldn't become data attributes or get stored back to MongoDB
+
+      self.load = function(req, item, callback) {
+        var criteria = {};
+        var options = {};
+
+        self.addCriteria(item, criteria, options);
+
+        return self._manager.pieces.get(req, criteria, options, function(err, results) {
+          if (err) {
+            item._pieces = [];
+            console.log(err);
+            return callback(err);
+          }
+          var pieces = results.pages;
+          if (item.by === 'id') {
+            pieces = self._apos.orderById(item.ids, pieces);
+          }
+          item._pieces = pieces;
+          return callback(null);
+        });
+      };
+
+      self.empty = function(item) {
+        return (!item._pieces) || (!item._pieces.length);
+      };
+
+
+    })(widgetOptions);
+
+    // This widget should be part of the default set of widgets for areas
+    // (note devs can still override the list)
+    self._apos.defaultControls.push(widget.name);
+
+    self._apos.addWidgetType(widget.name, widget);
+
+    // For your overriding convenience; override to change the
+    // server side behavior of the widget
+    self.extendWidget = function(widget) {
+    };
+
+    // Call extendWidget on next tick so that there is time to
+    // override it in a subclass
+    process.nextTick(function() {
+      self.extendWidget(widget);
+    });
+  }
+
+  self._apos.on('beforeEndAssets', function() {
+    self.pushAllAssets();
+  });
+
+  self.pushAllAssets = function() {
+    self.pushAsset('script', 'manager', {
+      when: 'user',
+      data: {
+        pieceName: self.pieceName,
+        pieceLabel: self.pieceLabel
+      }
+    });
+  };
 
   if (callback) {
     process.nextTick(function() {

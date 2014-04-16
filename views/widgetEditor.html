@@ -1,0 +1,44 @@
+{% extends "baseWidgetEditor.html" %}
+{% include "formMacros.html" %}
+{% block widgetVars %}
+  {% set widgetClass = widgetEditorClass %}
+{% endblock %}
+
+{% block title %}
+  {{ __('Display %s', pluralPieceLabel ) }}
+{% endblock %}
+
+{% block instructions %}
+{{ __('You can select content to display by entering the titles of individual %s, %s, or tags.', pluralPieceLabel | lower, pluralIndexLabel | lower ) }}
+{% endblock %}
+
+{% block formBody %}
+
+{# One of the fieldsets will have apos-active at any given time #}
+
+<fieldset class="apos-fieldset apos-fieldset-radio" data-by="id">
+  <input type="radio" name="by" value="id" data-switcher />
+  <label>{{ __('By ' + pieceLabel + ' title') }}</label>
+  {{ formSelective('ids', __('Title'), { inline: true, placeholder: __('Type ' + pieceLabel + ' titles here') }) }}
+</fieldset>
+
+<fieldset class="apos-fieldset apos-fieldset-radio" data-by="fromPageIds">
+  <input type="radio" name="by" value="fromPageIds" data-switcher />
+  <label>{{ __('By ' + indexLabel + ' name') }}</label>
+  {{ formSelective('fromPageIds', pluralIndexLabel, { inline: true, placeholder: __('Type ' + indexLabel + ' names here') }) }}
+  <div>
+    {{ __('Max ' + pluralPieceLabel + ' Shown') }}: <input type="text" name="limitFromPageIds" />
+  </div>
+</fieldset>
+
+<fieldset class="apos-fieldset apos-fieldset-radio" data-by="tag">
+  <input type="radio" name="by" value="tag" data-switcher />
+  <label>{{ __('By tag') }}</label>
+  {{ formTags('tags', 'Tags', { inline: true }) }}
+  <div>
+    {{ __('Max ' + pluralPieceLabel + ' Shown') }}: <input type="text" name="limitByTag" />
+  </div>
+</fieldset>
+
+{% endblock %}
+

@@ -1,17 +1,17 @@
 {% include 'pagerMacros.html' %}
 {# use renderBlogPosts to show all pieces as full posts on a page #}
 
-{% macro renderBlogPosts(pieces, pageUrl) %}
+{% macro renderBlogPosts(pieces) %}
   {% if pieces %}
     {% for piece in pieces %}
-      {{ renderBlogPost(piece, pageUrl) }}
+      {{ renderBlogPost(piece) }}
     {% endfor %}
   {% else %}
     <h4>{{ __('There are no blog posts yet.') }}</h4>
   {% endif %}
 {% endmacro %}
 
-{% macro renderBlogPost(piece, pageUrl) %}
+{% macro renderBlogPost(piece) %}
   <div class="apos-blog-post">
     <div class="apos-blog-post-heading">
       <h4><a href="{{ piece.url }}">{{ piece.title | e }}</a></h4>
@@ -28,17 +28,17 @@
 
 {# ...or use renderBlogPostPreviews to show previews of all pieces on a page (date and title) #}
 
-{% macro renderBlogPostPreviews(pieces, pageUrl) %}
+{% macro renderBlogPostPreviews(pieces) %}
   {% if pieces %}
     {% for piece in pieces %}
-      {{ renderBlogPostPreview(piece, pageUrl) }}
+      {{ renderBlogPostPreview(piece) }}
     {% endfor %}
   {% else %}
     <h4>{{ __('There are no blog posts yet.') }}</h4>
   {% endif %}
 {% endmacro %}
 
-{% macro renderBlogPostPreview(piece, pageUrl) %}
+{% macro renderBlogPostPreview(piece) %}
   <div class="apos-blog-post-preview">
     <div class="apos-blog-post">
       <div class="apos-blog-date">
