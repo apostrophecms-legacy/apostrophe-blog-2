@@ -2,7 +2,7 @@
 
 // We could define AposBlogPost too if we wanted it.
 
-function AposBlogManager(options) {
+function AposBlog2(options) {
   var self = this;
   self.name = options.name;
   self.indexLabel = options.indexLabel;
@@ -207,11 +207,11 @@ function AposBlogManager(options) {
   }
 }
 
-// When we explicitly subclass snippets, there must also be a subclass
+// When we explicitly subclass the blog, there must also be a subclass
 // on the browser side. However sometimes this subclass really has no
 // unique work to do, so we can synthesize it automatically.
 
-AposBlogManager.subclassIfNeeded = function(constructorName, baseConstructorName, options) {
+AposBlog2.subclassIfNeeded = function(constructorName, baseConstructorName, options) {
   if (!window[constructorName]) {
     window[constructorName] = function(options) {
       var self = this;
@@ -219,4 +219,3 @@ AposBlogManager.subclassIfNeeded = function(constructorName, baseConstructorName
     };
   }
 };
-

@@ -21,12 +21,9 @@
 {% endblock %}
 
 {% block mainContent %}
-  <div class="column apos-area-sidebar">
-    {{ aposArea(page, 'sidebar') }}
-  </div>
 
   <div class="column-2 blog-posts">
-    {{ renderBlogPost(page, page.url) }}
+    {{ renderBlogPost(page) }}
   </div>
 
 {% endblock %}

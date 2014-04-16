@@ -5,18 +5,18 @@ var RSS = require('rss');
 var url = require('url');
 var absolution = require('absolution');
 
-module.exports = blogManager;
+module.exports = blog2;
 
-function blogManager(options, callback) {
-  return new blogManager.BlogManager(options, callback);
+function blog2(options, callback) {
+  return new blog2.Blog2(options, callback);
 }
 
-blogManager.BlogManager = function(options, callback) {
+blog2.Blog2 = function(options, callback) {
   var self = this;
 
   options.modules = (options.modules || []).concat([ { dir: __dirname, name: 'blog-2' } ]);
 
-  self.name = options.name || 'BlogManager';
+  self.name = options.name || 'Blog2';
   self._apos = options.apos;
   self._action = '/apos-' + self._apos.cssName(self.name);
   self._app = options.app;
@@ -552,7 +552,7 @@ blogManager.BlogManager = function(options, callback) {
   // Synthesize a constructor for the manager object on the browser side
   // if there isn't one. This allows trivial subclassing of the blog for
   // cases where no custom browser side code is actually needed
-  self._apos.pushGlobalCallWhen('user', 'AposBlogManager.subclassIfNeeded(?, ?, ?)', getBrowserConstructor(), getBaseBrowserConstructor(), args);
+  self._apos.pushGlobalCallWhen('user', 'AposBlog2.subclassIfNeeded(?, ?, ?)', getBrowserConstructor(), getBaseBrowserConstructor(), args);
   self._apos.pushGlobalCallWhen('user', '@ = new @(?)', getBrowserInstance(), getBrowserConstructor(), args);
 
   function getBrowserInstance() {
@@ -723,4 +723,3 @@ blogManager.BlogManager = function(options, callback) {
     });
   }
 };
-
