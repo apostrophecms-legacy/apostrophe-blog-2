@@ -4,21 +4,21 @@
 {% macro renderBlogPosts(pieces) %}
   {% if pieces %}
     {% for piece in pieces %}
-      {{ renderBlogPost(piece) }}
+      {{ renderBlogPost(piece, { edit: false }) }}
     {% endfor %}
   {% else %}
     <h4>{{ __('There are no blog posts yet.') }}</h4>
   {% endif %}
 {% endmacro %}
 
-{% macro renderBlogPost(piece) %}
+{% macro renderBlogPost(piece, options = {}) %}
   <div class="apos-blog-post">
     <div class="apos-blog-post-heading">
       <h4><a href="{{ piece.url }}">{{ piece.title | e }}</a></h4>
       <div class="blog-title-divider"></div>
       <h6>{{ piece.publishedAt | date("MMM DD, YYYY") }}</h6>
     </div>
-    <div class="apos-blog-post-body">{{ aposArea(piece, 'body') }}</div>
+    <div class="apos-blog-post-body">{{ aposArea(piece, 'body', { edit: options.edit }) }}</div>
     {% if piece.tags %}
       <div class="apos-blog-tags">
         {{ __('File under') }}: {{ piece.tags|join(', ') }}
