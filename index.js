@@ -394,6 +394,21 @@ blog2.Blog2 = function(options, callback) {
           // Don't show it in page settings, we'll edit it on the
           // show page
           contextual: true
+        },
+        // This is a virtual join allowing the user to pick a new
+        // parent blog for this post. If the user chooses to populate
+        // it, then a beforePutOne override will take care of
+        // calling self._pages.move to do the real work
+        {
+          name: '_parent',
+          type: 'joinByOne',
+          label: 'Move to Another Blog',
+          placeholder: 'Type the name of the blog',
+          withType: self.indexName,
+          idField: '_newParentId',
+          getOptions: {
+            editable: true
+          }
         }
       ].concat(piecesOptions.addFields || []),
       pageSettingsTemplate: 'piecePageSettings',
@@ -497,7 +512,7 @@ blog2.Blog2 = function(options, callback) {
       return callback(null);
     };
 
-    // Denormalize the publication date and time
+    // Denormalize the publication date and time.
     self.pieces.beforePutOne = function(req, slug, options, piece, callback) {
       // Pieces are always orphans - they don't appear
       // as subpages in navigation (because there are way too
@@ -513,16 +528,46 @@ blog2.Blog2 = function(options, callback) {
       }
       return callback(null);
     };
+
+    // If the user specifies a new parent via the _newParentId virtual
+    // join, use the pages module to change the parent of the piece.
+    self.pieces.afterPutOne = function(req, slug, options, piece, callback) {
+      var newParent;
+      return async.series({
+        getNewParent: function(callback) {
+          if (!piece._newParentId) {
+            return callback(null);
+          }
+          return self.indexes.getOne(req, { _id: piece._newParentId }, {}, function(err, page) {
+            if (err) {
+              return callback(err);
+            }
+            newParent = page;
+            return callback(null);
+          });
+        },
+        move: function(callback) {
+          if (!newParent) {
+            return callback(null);
+          }
+          return self._pages.move(req, piece, newParent, 'inside', callback);
+        }
+      }, callback);
+    };
   };
 
   // Invoke the loaders for the two fancy pages we're implementing
   self.loader = function(req, callback) {
     return async.series({
       indexes: function(callback) {
-        return self.indexes.loader(req, callback);
+        return self.indexes.loader(req, function(err) {
+          return callback(err);
+        });
       },
       pieces: function(callback) {
-        return self.pieces.loader(req, callback);
+        return self.pieces.loader(req, function(err) {
+          return callback(err);
+        });
       }
     }, callback);
   };
