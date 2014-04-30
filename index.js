@@ -98,10 +98,15 @@ blog2.Blog2 = function(options, callback) {
           name: 'new-' + self._apos.cssName(self.pieceName),
           label: 'New ' + self.pieceLabel
         },
-        {
-          name: 'new-page',
-          label: 'New Page'
-        },
+      ].concat(options.allowSubpagesOfIndex ?
+        [
+          {
+            name: 'new-page',
+            label: 'New Page'
+          }
+        ] :
+        []
+      ).concat([
         {
           name: 'edit-page',
           label: self.indexLabel + ' Settings'
@@ -111,14 +116,18 @@ blog2.Blog2 = function(options, callback) {
           label: 'Page Versions'
         },
         {
+          name: 'rescue-' + self._apos.cssName(self.pieceName),
+          label: 'Browse Trash'
+        },
+        {
           name: 'delete-page',
-          label: 'Move to Trash'
+          label: 'Move Entire ' + self.indexLabel + ' to Trash'
         },
         {
           name: 'reorganize-page',
-          label: 'Reorganize'
+          label: 'Reorganize Site'
         }
-      ]
+      ])
     });
     fancyPage.FancyPage.call(self.indexes, indexesOptions, null);
 
@@ -433,8 +442,12 @@ blog2.Blog2 = function(options, callback) {
           label: piecesOptions.label + ' Versions'
         },
         {
-          name: 'delete-page',
+          name: 'delete-' + self._apos.cssName(self.pieceName),
           label: 'Move to Trash'
+        },
+        {
+          name: 'rescue-' + self._apos.cssName(self.pieceName),
+          label: 'Rescue ' + self.pieceLabel + ' From Trash'
         }
       ]
     });
@@ -760,7 +773,130 @@ blog2.Blog2 = function(options, callback) {
         pieceLabel: self.pieceLabel
       }
     });
+    self.pushAsset('template', 'browseTrash', {
+      when: 'user',
+      data: {
+        browseTrashClass: 'apos-browse-trash-' + self._apos.cssName(self.pieceName),
+        pluralLabel: self.pieces.pluralLabel
+      }
+    });
   };
+
+  // Fetch blog posts the current user is allowed to see.
+  // Accepts skip, limit, trash, search and other options
+  // supported by the "get" method via req.query
+
+  self._app.get(self._action + '/get', function(req, res) {
+    var criteria = {};
+    var options = {};
+    self.addApiCriteria(req.query, criteria, options);
+    self.pieces.get(req, criteria, options, function(err, results) {
+      if (err) {
+        console.error(err);
+        return res.send({ status: 'error' });
+      }
+      results.status = 'ok';
+      return res.send(results);
+    });
+  });
+
+  self.addApiCriteria = function(queryArg, criteria, options) {
+
+    // Most of the "criteria" that come in via an API call belong in options
+    // (skip, limit, titleSearch, published, etc). Handle any cases that should
+    // go straight to the mongo criteria object
+
+    var query = _.cloneDeep(queryArg);
+
+    var slug = self._apos.sanitizeString(query.slug);
+    if (slug.length) {
+      criteria.slug = query.slug;
+      // Don't let it become an option too
+      delete query.slug;
+    }
+
+    var _id = self._apos.sanitizeString(query._id);
+    if (_id.length) {
+      criteria._id = query._id;
+      // Don't let it become an option too
+      delete query._id;
+    }
+
+    // Everything else is assumed to be an option
+    _.extend(options, query);
+
+    // Make sure these are converted to numbers, but only if they are present at all
+    if (options.skip !== undefined) {
+      options.skip = self._apos.sanitizeInteger(options.skip);
+    }
+    if (options.limit !== undefined) {
+      options.limit = self._apos.sanitizeInteger(options.limit);
+    }
+    options.editable = true;
+  };
+
+  // Move a piece to the trash. Requires 'slug' and 'trash' as
+  // POST parameters. If 'trash' is true then the piece is
+  // trashed, otherwise it is rescued from the trash.
+  //
+  // Separate from the regular trashcan for pages because blog posts
+  // should remain children of their blog when they are in the trash.
+
+  self._app.post(self._action + '/delete', function(req, res) {
+    var piece;
+    var parent;
+    return async.series({
+      get: function(callback) {
+        return self.pieces.getOne(req, { type: self.pieceName, slug: self._apos.sanitizeString(req.body.slug) }, { trash: 'any' }, function(err, _piece) {
+          piece = _piece;
+          if (!piece) {
+            return res.send({ status: 'notfound' });
+          }
+          return callback(err);
+        });
+      },
+      update: function(callback) {
+        var trash = self._apos.sanitizeBoolean(req.body.trash);
+        var oldSlug = piece.slug;
+        if (trash) {
+          if (piece.trash) {
+            return callback(null);
+          }
+          piece.trash = true;
+          // Mark it in the slug too, mainly to free up the original
+          // slug for new pieces, but also because it's nice for
+          // debugging
+          piece.slug = piece.slug.replace(/\/[^\/]+$/, function(match) {
+            return match.replace(/^\//, '/♻');
+          });
+        } else {
+          if (!piece.trash) {
+            return callback(null);
+          }
+          piece.slug = piece.slug.replace(/\/♻[^\/]+$/, function(match) {
+            return match.replace(/^\/♻/, '/');
+          });
+          delete piece.trash;
+        }
+        return self.pieces.putOne(req, oldSlug, {}, piece, callback);
+      },
+      findParent: function(callback) {
+        self._pages.getParent(req, piece, function(err, _parent) {
+          if (err || (!_parent)) {
+            return callback(err || new Error('No parent'));
+          }
+          parent = _parent;
+          return callback(null);
+        });
+      }
+    }, function(err) {
+      if (err) {
+        console.error(err);
+        return res.send({ status: 'error' });
+      }
+      return res.send({ status: 'ok', parent: parent.slug, slug: piece.slug });
+    });
+  });
 
   if (callback) {
     process.nextTick(function() {

@@ -30,6 +30,148 @@ function AposBlog2(options) {
     return false;
   });
 
+  $('body').on('click', '[data-delete-' + apos.cssName(options.pieceName) + ']', function() {
+    var slug = apos.data.aposPages.page.slug;
+    $.jsonCall(
+      self._action + '/delete',
+      {
+        slug: slug,
+        trash: true
+      },
+      function (data) {
+        if (data.status === 'ok') {
+          alert('Moved to the trash. Select "Browse Trash" from the context menu to recover items from the trash.');
+          window.location.href = aposPages.options.root + data.parent;
+        } else {
+          alert('An error occurred. Please try again.');
+        }
+      }
+    );
+    return false;
+  });
+
+  var cssName = apos.cssName(options.pieceName);
+  $('body').on('click', '[data-rescue-' + cssName + ']', function() {
+    self.browseTrash();
+    return false;
+  });
+
+  self.browseTrash = function() {
+
+    var $el;
+    var browser = {
+      page: 1,
+      total: 0,
+      perPage: 2,
+      $el: null,
+      init: function(callback) {
+        browser.$search = $el.find('[name="search"]');
+        browser.$template = $el.find('[data-item]');
+        browser.$template.remove();
+        browser.$dataItems = $el.find('[data-items]');
+
+        $el.on('keyup', '[name="search"]', function(e) {
+          if (e.keyCode === 13) {
+            $el.find('[data-search-submit]').trigger('click');
+            return false;
+          }
+        });
+
+        $el.on('click', '[data-search-submit]', function(e) {
+          browser.page = 1;
+          browser.load();
+          return false;
+        });
+
+        $el.on('click', '[data-remove-search]', function() {
+          browser.page = 1;
+          browser.$search.val('');
+          browser.load();
+          return false;
+        });
+
+        $el.on('click', '[data-item]', function() {
+          browser.rescue($(this).attr('data-slug'));
+          return false;
+        });
+
+        $el.on('click', '[data-page]', function() {
+          browser.page = $(this).attr('data-page');
+          browser.load();
+          return false;
+        });
+
+        return browser.load(callback);
+      },
+      load: function(callback) {
+        $.getJSON(
+          self._action + '/get',
+          {
+            trash: true,
+            search: browser.$search.val(),
+            skip: (browser.page - 1) * browser.perPage,
+            limit: browser.perPage
+          },
+          function(data) {
+            if (data.status !== 'ok') {
+              alert('An error occurred. Please try again.');
+              return callback && callback('error');
+            }
+            browser.$dataItems.find('[data-item]:not(.apos-template)').remove();
+            _.each(data.pages, function(result) {
+              var $item = apos.fromTemplate(browser.$template);
+              $item.find('[data-title]').text(result.title);
+              // Show just the date part of the timestamp
+              $item.find('[data-date]').text(result.publicationDate);
+              $item.attr('data-slug', result.slug);
+              browser.$dataItems.append($item);
+            });
+            browser.total = Math.ceil(data.total / browser.perPage);
+            if (browser.total < 1) {
+              browser.total = 1;
+            }
+            browser.pager();
+            return callback && callback(null);
+          }
+        );
+      },
+      pager: function() {
+        // Rebuild pager based on 'page' and 'total'
+        $.get('/apos/pager', { page: browser.page, total: browser.total }, function(data) {
+          $el.find('[data-pager-box]').html(data);
+        });
+      },
+      rescue: function(slug) {
+        $.jsonCall(
+          self._action + '/delete',
+          {
+            slug: slug,
+            trash: false
+          },
+          function (data) {
+            if (data.status === 'ok') {
+              alert('Restored as an unpublished draft.');
+              window.location.href = aposPages.options.root + data.slug;
+            } else {
+              alert('An error occurred. Please try again.');
+            }
+          }
+        );
+      }
+    };
+
+    // A hook to extend the trash browser
+    self.extendBrowseTrash(browser);
+    $el = apos.modalFromTemplate('.apos-browse-trash-' + cssName, browser);
+    browser.$el = $el;
+  };
+
+  // Receives the "browser" object defined above. Called before
+  // the modal is initialized so you can override or extend the
+  // methods
+  self.extendBrowseTrash = function(browser) {
+  };
+
   if (options.widget) {
 
     // So we can see the main AposBlog manager object
