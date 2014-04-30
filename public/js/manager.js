@@ -62,7 +62,7 @@ function AposBlog2(options) {
     var browser = {
       page: 1,
       total: 0,
-      perPage: 2,
+      perPage: 10,
       $el: null,
       init: function(callback) {
         browser.$search = $el.find('[name="search"]');
