@@ -526,12 +526,20 @@ blog2.Blog2 = function(options, callback) {
     };
 
     // Denormalize the publication date and time.
+    // Set the "orphan" and "reorganize" flags.
+
     self.pieces.beforePutOne = function(req, slug, options, piece, callback) {
       // Pieces are always orphans - they don't appear
       // as subpages in navigation (because there are way too
       // many of them and you need to demonstrate some clue about
       // that by deliberately querying for them)
       piece.orphan = true;
+
+      // Pieces should not clutter up the "reorganize" tree, that's why
+      // equivalent features are provided in the context menu and the
+      // piece settings to move between index pages, browse trash, etc.
+      piece.reorganize = false;
+
       if (piece.publicationTime === null) {
         // Make sure we specify midnight, if we leave off the time entirely we get
         // midnight UTC, not midnight local time
@@ -896,6 +904,17 @@ blog2.Blog2 = function(options, callback) {
       }
       return res.send({ status: 'ok', parent: parent.slug, slug: piece.slug });
     });
+  });
+
+  self._apos.addMigration('blog2AddReorganizeFlag', function(callback) {
+    var needed = false;
+    return self._apos.forEachPage({ type: 'blogPost', reorganize: { $ne: false } }, function(page, callback) {
+      if (!needed) {
+        needed = true;
+        console.log('Hiding blog posts from reorganize');
+      }
+      return self._apos.pages.update({ _id: page._id }, { $set: { reorganize: false } }, callback);
+    }, callback);
   });
 
   if (callback) {
