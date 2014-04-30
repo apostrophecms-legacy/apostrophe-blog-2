@@ -4,6 +4,7 @@ var fancyPage = require('apostrophe-fancy-page');
 var RSS = require('rss');
 var url = require('url');
 var absolution = require('absolution');
+var moment = require('moment');
 
 module.exports = blog2;
 
@@ -915,6 +916,72 @@ blog2.Blog2 = function(options, callback) {
       }
       return self._apos.pages.update({ _id: page._id }, { $set: { reorganize: false } }, callback);
     }, callback);
+  });
+
+
+  self._apos.on('tasks:register', function(taskGroups) {
+    taskGroups.apostrophe.generateBlogPosts = function(apos, argv, callback) {
+      if (argv._.length !== 2) {
+        return callback('Usage: node app apostrophe:generate-blog-posts /slug/of/parent/blog');
+      }
+      var req = self._apos.getTaskReq();
+      var parentSlug = argv._[1];
+      var parent;
+
+      return async.series({
+        getParent: function(callback) {
+          return self.indexes.getOne(req, { slug: parentSlug }, {}, function(err, _parent) {
+            if (err) {
+              return callback(err);
+            }
+            if (!_parent) {
+              return callback('No such parent blog page found');
+            }
+            parent = _parent;
+            return callback(null);
+          });
+        },
+        posts: function(callback) {
+          var randomWords = require('random-words');
+          var i;
+          var posts = [];
+          for (i = 0; (i < 100); i++) {
+            var title = randomWords({ min: 5, max: 10, join: ' ' });
+            var at = new Date();
+            // Many past publication times and a few in the future
+            // 86400 = one day in seconds, 1000 = milliseconds to seconds
+            at.setTime(at.getTime() + (10 - 90 * Math.random()) * 86400 * 1000);
+            var post = {
+              type: 'blogPost',
+              title: title,
+              publishedAt: at,
+              publicationDate: moment(at).format('YYYY-MM-DD'),
+              publicationTime: moment(at).format('HH:MM'),
+              body: {
+                type: 'area',
+                items: [
+                  {
+                    type: 'richText',
+                    content: randomWords({ min: 50, max: 200, join: ' ' })
+                  }
+                ]
+              }
+            };
+            if (Math.random() > 0.2) {
+              post.published = true;
+            }
+            posts.push(post);
+          }
+          return async.eachSeries(posts, function(post, callback) {
+            return self.pieces.putOne(req,
+              undefined,
+              { parent: parent },
+              post,
+              callback);
+          }, callback);
+        }
+      }, callback);
+    };
   });
 
   if (callback) {
