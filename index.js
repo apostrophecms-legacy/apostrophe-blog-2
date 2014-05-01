@@ -25,7 +25,7 @@ blog2.Blog2 = function(options, callback) {
   self._schemas = options.schemas;
   self._options = options;
   self._perPage = options.perPage || 10;
-
+  self._dateInSlug = (options.dateInSlug === undefined) ? true : options.dateInSlug;
   self.pieceName = options.pieceName || 'blogPost';
   self.pieceLabel = options.pieceLabel || 'Blog Post';
   self.indexName = options.indexName || 'blog';
@@ -567,6 +567,8 @@ blog2.Blog2 = function(options, callback) {
 
     // Denormalize the publication date and time.
     // Set the "orphan" and "reorganize" flags.
+    // Force the slug to incorporate the
+    // publication date.
 
     self.pieces.beforePutOne = function(req, slug, options, piece, callback) {
       // Pieces are always orphans - they don't appear
@@ -587,6 +589,19 @@ blog2.Blog2 = function(options, callback) {
       } else {
         piece.publishedAt = new Date(piece.publicationDate + ' ' + piece.publicationTime);
       }
+
+      if (self._dateInSlug) {
+        var datePath = piece.publicationDate.replace(/-/g, '/');
+        var dateSlugRegex = /\/(\d\d\d\d\/\d\d\/\d\d\/)?([^\/]+)$/;
+        var matches = piece.slug.match(dateSlugRegex);
+        if (!matches) {
+          // This shouldn't happen, but don't crash over it
+          console.error("I don't understand how to add a date to this slug: " + piece.slug);
+        } else {
+          piece.slug = piece.slug.replace(dateSlugRegex, '/' + datePath + '/' + matches[2]);
+        }
+      }
+
       return callback(null);
     };
 
