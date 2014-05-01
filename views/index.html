@@ -30,7 +30,7 @@
       {% if allTags.length %}
           <label for="type-filter">{{ __('Filter by') }} </label>
           <select id="snippets-tag-filter" name="type-filter">
-            <option value="{{ here({ tag:  }) }}">{{ __('All') }}</option>
+            <option value="{{ here({ tag: '' }) }}">{{ __('All') }}</option>
             {%- for tag in allTags -%}
               {%- if tag.length -%}
                 <option {% if query.tag == tag %}selected{%endif %} value="{{ here({ tag: tag }) }}">{{ tag }}</option>
