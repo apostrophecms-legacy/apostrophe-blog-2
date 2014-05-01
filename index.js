@@ -24,6 +24,7 @@ blog2.Blog2 = function(options, callback) {
   self._pages = options.pages;
   self._schemas = options.schemas;
   self._options = options;
+  self._perPage = options.perPage || 10;
 
   self.pieceName = options.pieceName || 'blogPost';
   self.pieceLabel = options.pieceLabel || 'Blog Post';
@@ -74,6 +75,8 @@ blog2.Blog2 = function(options, callback) {
       pages: options.pages,
       schemas: options.schemas,
       modules: options.modules,
+      // Greedy so we can add year and month to the URL
+      greedy: true,
       browser: {
         baseConstruct: 'AposFancyPage',
         options: {}
@@ -312,6 +315,9 @@ blog2.Blog2 = function(options, callback) {
   // to the normal view of content.
 
   self.addCriteria = function(req, criteria, options) {
+
+    self.addDateCriteria(req, criteria, options);
+
     options.fetch = {
       tags: { parameter: 'tag' }
     };
@@ -355,6 +361,73 @@ blog2.Blog2 = function(options, callback) {
     // Admins have to be able to see unpublished content because they have to get
     // to it to edit it and there is no "manage" dialog needed anymore
     // criteria.published = true;
+  };
+
+  // Extract year and month from the URL if present, add
+  // them to criteria as needed, set up thisYear and thisMonth
+
+  self.addDateCriteria = function(req, criteria, options) {
+    if (req.remainder.length) {
+      // Spot a year and month in the URL to implement filtering by month
+      matches = req.remainder.match(/^\/(\d+)\/(\d+)$/);
+
+      // activeYear and activeMonth = we are filtering to that month.
+      // thisYear and thisMonth = now (as in today).
+
+      // TODO: consider whether blog and events should share more logic
+      // around this and if so whether to use a mixin module or shove it
+      // into the (dangerously big already) base class, the snippets module
+      // or possibly even have events subclass blog after all.
+
+      if (matches) {
+        // force to integer
+        req.extras.activeYear = matches[1];
+        req.extras.activeMonth = matches[2];
+        // set up the next and previous urls for our calendar
+        var nextYear = req.extras.activeYear;
+        // Note use of - 0 to force a number
+        var nextMonth = req.extras.activeMonth - 0 + 1;
+        if (nextMonth > 12) {
+          nextMonth = 1;
+          nextYear = req.extras.activeYear - 0 + 1;
+        }
+        nextMonth = pad(nextMonth, 2);
+        req.extras.nextYear = nextYear;
+        req.extras.nextMonth = nextMonth;
+
+        var prevYear = req.extras.activeYear;
+        var prevMonth = req.extras.activeMonth - 0 - 1;
+        if (prevMonth < 1) {
+          prevMonth = 12;
+          prevYear = req.extras.activeYear - 0 - 1;
+        }
+        prevMonth = pad(prevMonth, 2);
+        req.extras.prevYear = prevYear;
+        req.extras.prevMonth = prevMonth;
+        // Make sure the default dispatcher considers the job done
+        req.remainder = '';
+      }
+    } else {
+      // Nothing extra in the URL
+      req.extras.defaultView = true;
+      // The current month and year, for switching to navigating by month
+      var now = moment(new Date());
+      req.extras.thisYear = now.format('YYYY');
+      req.extras.thisMonth = now.format('MM');
+    }
+    if (req.extras.activeYear) {
+      // force to integer
+      var year = req.extras.activeYear - 0;
+      // month is 0-11 because javascript is wacky because Unix is wacky
+      var month = req.extras.activeMonth - 1;
+      // this still works if the month is already 11, you can roll over
+      criteria.publishedAt = { $gte: new Date(year, month, 1), $lt: new Date(year, month + 1, 1) };
+      // When showing content by month we switch to ascending dates
+      options.sort = { publishedAt: 1 };
+    }
+    function pad(s, n) {
+      return self._apos.padInteger(s, n);
+    }
   };
 
   // For easier subclassing, these callbacks are invoked at the last
