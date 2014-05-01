@@ -9,7 +9,7 @@
 {# 'changes' to override filters. Passing null for a filter removes it. #}
 
 {%- macro here(changes) -%}
-  {{ page.url | build([ 'year', 'month' ], { year: activeYear, month: activeMonth, tag: query.tag }, changes) }}
+  {{ page.url | build([ 'year', 'month' ], { year: activeYear, month: activeMonth, search: query.search }, changes) }}
 {%- endmacro -%}
 
 {# Output the current content of the page, with buttons to edit it #}
@@ -24,21 +24,6 @@
     {% else %}
       <div class="filter-element view-recent-button"><h4><a href="{{ here({ year: '', month: '' }) }}">{{ __('View Recent Articles') }}</a></h4></div>
     {% endif %}
-
-    {# the filter, which is only visible if there are tags present #}
-    <div class="filter-element filter-select-container">
-      {% if allTags.length %}
-          <label for="type-filter">{{ __('Filter by') }} </label>
-          <select id="snippets-tag-filter" name="type-filter">
-            <option value="{{ here({ tag: '' }) }}">{{ __('All') }}</option>
-            {%- for tag in allTags -%}
-              {%- if tag.length -%}
-                <option {% if query.tag == tag %}selected{%endif %} value="{{ here({ tag: tag }) }}">{{ tag }}</option>
-              {% endif %}
-            {% endfor %}
-          </select>
-      {% endif %}
-    </div>
 
     {# Title of current view (shows month forward and backward controls in month view) #}
     {% if defaultView %}
@@ -63,7 +48,6 @@
         {% block subnav %}
           <div class="subnavigation">
             <h4>{{ __('Subpages') }}</h4>
-            <p>{{ __('Blog posts have tags, and that means you can create a blog subpage that only shows a certain set of tags. Try it out!') }}</p>
             <ol class="children">
             {% for relative in page.children %}
               <li><a href="{{ relative.url }}">{{ relative.title | e }}</a></li>
@@ -105,6 +89,18 @@
   </div>
 
   <div class="column-2">
+    {# Search filter markup borrowed from Stuart, TODO: ask him about #}
+    {# suitable styles from a related project #}
+    <form class="apos-search-form filter-search{% if query.search %} searched{% endif %}" method="GET" action="">
+      <div class="search-title">Search For:</div>
+      <div class="search-inputs">
+        <input name="search" value="{{ query.search | e }}" class="search-field" />
+        <input type="submit" class="search-submit" value="search" />
+        {% if query.search %}
+          <a class="search-clear" href="{{ here({ search: '' }) }}">X</a>
+        {% endif %}
+      </div>
+    </form>
     <div class="apos-blog-posts">
       {{ renderBlogPostPreviews(pieces, page.url) }}
     </div>
@@ -116,14 +112,6 @@
   <div class="full-width-column">
     {{ renderPager(pager, here({})) }}
   </div>
-
-  <script type="text/javascript">
-    var $eventFilter = $('select#snippets-tag-filter');
-
-    $eventFilter.on('change', function(event) {
-      window.location.href = $eventFilter.val();
-    });
-  </script>
 
   {# Just uncomment this script block to enable infinite scroll instead! #}
 

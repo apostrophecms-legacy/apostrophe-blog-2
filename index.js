@@ -150,10 +150,7 @@ blog2.Blog2 = function(options, callback) {
               return callback(err);
             }
             results = _results;
-            req.extras.allTags = results.tags;
 
-            // Make the filter metadata (like tag lists) available to the template
-            req.extras.filters = _.omit(results, 'pages');
             return callback(null);
           });
         },
@@ -318,46 +315,15 @@ blog2.Blog2 = function(options, callback) {
 
     self.addDateCriteria(req, criteria, options);
 
-    options.fetch = {
-      tags: { parameter: 'tag' }
-    };
-    if (req.page.withTags && req.page.withTags.length) {
-      options.tags = req.page.withTags;
-    }
-    if (req.page.notTags && req.page.notTags.length) {
-      options.notTags = req.page.notTags;
-      // This restriction also applies when fetching distinct tags
-      options.fetch.tags.except = req.page.notTags;
-    }
-    if (req.query.tag) {
-      // Override the criteria for fetching pieces but leave options.fetch.tags
-      // alone
-      var tag = self._apos.sanitizeString(req.query.tag);
-      if (tag.length) {
-        // Page is not tag restricted, or user is filtering by a tag included on that
-        // list, so we can just use the filter tag as options.tag
-        if ((!options.tags) || (!options.tags.length) ||
-          (_.contains(options.tags, tag))) {
-          options.tags = [ tag ];
-        } else {
-          // Page is tag restricted and user wants to filter by a related tag not
-          // on that list - we must be more devious so that both sets of
-          // restrictions apply
-          criteria.tags = { $in: options.tags };
-          options.tags = [ tag ];
-        }
-        // Always return the active tag as one of the filter choices even if
-        // there are no results in this situation. Otherwise the user may not be
-        // able to see the state of the filter (for instance if it is expressed
-        // as a select element)
-        options.fetch.tags.always = tag;
-      }
-    }
-
     options.fromPages = [ req.page ];
     if (req.page._andFromPages) {
       options.fromPages = options.fromPages.concat(req.page._andFromPages);
     }
+
+    if (req.query.search) {
+      options.search = self._apos.sanitizeString(req.query.search);
+    }
+
     // Admins have to be able to see unpublished content because they have to get
     // to it to edit it and there is no "manage" dialog needed anymore
     // criteria.published = true;
