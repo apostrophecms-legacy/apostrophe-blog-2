@@ -1038,6 +1038,13 @@ blog2.Blog2 = function(options, callback) {
     };
   });
 
+  self._apos.on('addSearchFilters', function(searchFilters) {
+    searchFilters.push({
+      name: self.pieceName,
+      label: self.pieces.pluralLabel
+    });
+  });
+
   if (callback) {
     process.nextTick(function() {
       return callback();
