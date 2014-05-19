@@ -1,6 +1,6 @@
 {
   "name": "apostrophe-blog-2",
-  "version": "0.5.13",
+  "version": "0.5.14",
   "description": "A next-generation blog for A2. Blogs and blog posts are ordinary pages with a few fancy features, so that blog posts have a natural and obvious permanent URL on the site but aggreation and blog-style browsing are still possible.",
   "main": "index.js",
   "scripts": {
