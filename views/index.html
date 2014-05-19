@@ -104,14 +104,9 @@
     <div class="apos-blog-posts">
       {{ renderBlogPostPreviews(pieces, page.url) }}
     </div>
-  </div>
-
-  {# TODO: set up a here() macro like we have in DR to implement #}
-  {# combinations of filters once we have them #}
-
-  <div class="full-width-column">
     {{ renderPager(pager, here({})) }}
   </div>
+
 
   {# Just uncomment this script block to enable infinite scroll instead! #}
 
