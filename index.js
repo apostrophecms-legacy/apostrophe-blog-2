@@ -81,19 +81,20 @@ blog2.Blog2 = function(options, callback) {
         baseConstruct: 'AposFancyPage',
         options: {}
       },
-      addFields: [
-        {
-          name: '_andFromPages',
-          label: 'And From These Blogs',
-          type: 'joinByArray',
-          idsField: 'andFromPagesIds',
-          withType: 'blog'
-        }
-      ].concat(indexesOptions.addFields || []),
       pageSettingsTemplate: 'indexPageSettings',
       editorScript: 'indexEditor',
       contentScript: 'indexContent'
     });
+    indexesOptions.addFields = [
+      {
+        name: '_andFromPages',
+        label: 'And From These Blogs',
+        type: 'joinByArray',
+        idsField: 'andFromPagesIds',
+        withType: 'blog'
+      }
+    ].concat(indexesOptions.addFields || []);
+
     _.defaults(indexesOptions, {
       // Rebuild the context menu, renaming items and
       // throwing in a new one
@@ -423,47 +424,49 @@ blog2.Blog2 = function(options, callback) {
       browser: {
         baseConstruct: 'AposFancyPage'
       },
-      addFields: [
-        {
-          // Add these new fields after the "published" field
-          after: 'published',
-          name: 'publicationDate',
-          label: 'Publication Date',
-          type: 'date'
-        },
-        {
-          name: 'publicationTime',
-          label: 'Publication Time',
-          type: 'time'
-        },
-        {
-          name: 'body',
-          type: 'area',
-          label: 'Body',
-          // Don't show it in page settings, we'll edit it on the
-          // show page
-          contextual: true
-        },
-        // This is a virtual join allowing the user to pick a new
-        // parent blog for this post. If the user chooses to populate
-        // it, then a beforePutOne override will take care of
-        // calling self._pages.move to do the real work
-        {
-          name: '_parent',
-          type: 'joinByOne',
-          label: 'Move to Another Blog',
-          placeholder: 'Type the name of the blog',
-          withType: self.indexName,
-          idField: '_newParentId',
-          getOptions: {
-            editable: true
-          }
-        }
-      ].concat(piecesOptions.addFields || []),
       pageSettingsTemplate: 'piecePageSettings',
       editorScript: 'pieceEditor',
       contentScript: 'pieceContent'
     });
+
+    piecesOptions.addFields = [
+      {
+        // Add these new fields after the "published" field
+        after: 'published',
+        name: 'publicationDate',
+        label: 'Publication Date',
+        type: 'date'
+      },
+      {
+        name: 'publicationTime',
+        label: 'Publication Time',
+        type: 'time'
+      },
+      {
+        name: 'body',
+        type: 'area',
+        label: 'Body',
+        // Don't show it in page settings, we'll edit it on the
+        // show page
+        contextual: true
+      },
+      // This is a virtual join allowing the user to pick a new
+      // parent blog for this post. If the user chooses to populate
+      // it, then a beforePutOne override will take care of
+      // calling self._pages.move to do the real work
+      {
+        name: '_parent',
+        type: 'joinByOne',
+        label: 'Move to Another Blog',
+        placeholder: 'Type the name of the blog',
+        withType: self.indexName,
+        idField: '_newParentId',
+        getOptions: {
+          editable: true
+        }
+      }
+    ].concat(piecesOptions.addFields || []);
+
     _.defaults(piecesOptions, {
       // Rebuild the context menu, removing items that
       // make a blog post seem overly page-y and renaming
