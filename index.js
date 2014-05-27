@@ -34,7 +34,7 @@ blog2.Blog2 = function(options, callback) {
   self._browser = options.browser || {};
 
   // Mix in the ability to serve assets and templates
-  self._apos.mixinModuleAssets(self, 'fancyPage', __dirname, options);
+  self._apos.mixinModuleAssets(self, 'blog-2', __dirname, options);
 
   // Set defaults for feeds, but respect it if self._options.feed has been
   // explicitly set false
@@ -82,8 +82,11 @@ blog2.Blog2 = function(options, callback) {
         options: {}
       },
       pageSettingsTemplate: 'indexPageSettings',
-      editorScript: 'indexEditor',
-      contentScript: 'indexContent'
+      // So far manager.js seems sufficient, but we could
+      // use these options to provide separate files for
+      // each of these components within the blog-2 module
+      // editorScript: 'indexEditor',
+      // contentScript: 'indexContent'
     });
     indexesOptions.addFields = [
       {
@@ -425,8 +428,11 @@ blog2.Blog2 = function(options, callback) {
         baseConstruct: 'AposFancyPage'
       },
       pageSettingsTemplate: 'piecePageSettings',
-      editorScript: 'pieceEditor',
-      contentScript: 'pieceContent'
+      // So far manager.js seems sufficient, but we could
+      // use these options to provide separate files for
+      // each of these components within the blog-2 module
+      // editorScript: 'pieceEditor',
+      // contentScript: 'pieceContent'
     });
 
     piecesOptions.addFields = [
