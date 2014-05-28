@@ -983,9 +983,12 @@ blog2.Blog2 = function(options, callback) {
 
 
   self._apos.on('tasks:register', function(taskGroups) {
-    taskGroups.apostrophe.generateBlogPosts = function(apos, argv, callback) {
+    // Task name depends on what we're generating! Otherwise
+    // subclasses with a different piece type crush the generate-blog-posts task
+    var taskName = self._apos.camelName('generate ' + self.pieces.pluralLabel);
+    taskGroups.apostrophe[taskName] = function(apos, argv, callback) {
       if (argv._.length !== 2) {
-        return callback('Usage: node app apostrophe:generate-blog-posts /slug/of/parent/blog');
+        return callback('Usage: node app apostrophe:' + taskName + ' /slug/of/parent/blog');
       }
       var req = self._apos.getTaskReq();
       var parentSlug = argv._[1];
