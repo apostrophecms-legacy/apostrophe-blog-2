@@ -188,7 +188,7 @@ function AposBlog2(options) {
         var self = this;
         self.manager = manager;
         self._action = manager._action;
-        self.defaultLimit = options.limit || manager._options.widget.defaultLimit || 5;
+        self.defaultLimit = options.options.limit || options.limit || manager._options.widget.defaultLimit || 5;
 
         self.type = widgetName;
         self.css = apos.cssName(self.type);
