@@ -209,7 +209,7 @@ function AposBlog2(options) {
             self.data.limitFromPageIds = self.defaultLimit;
           }
           self.$by = self.$el.findByName('by');
-          self.$by.radio(self.data.by);
+          self.$by.val(self.data.by || 'fromPageIds');
           self.$tags = self.$el.find('[data-name="tags"]');
           apos.enableTags(self.$tags, self.data.tags);
           self.$limitByTag = self.$el.findByName('limitByTag');
@@ -270,30 +270,20 @@ function AposBlog2(options) {
             self.completedTask();
           });
 
-          // Any click inside one of the fieldsets should switch to it
-          self.$el.on('click', 'fieldset', function() {
-            var $switcher = $(this).find('[data-switcher]');
-            $switcher.trigger('click');
-            return true;
-          });
-
-          // Radio button click events should switch the apos-active class
-          self.$el.on('click', '[data-switcher]', function(e) {
-            var val = $(this).attr('value');
+          self.$by.on('change', function() {
+            var val = $(this).val();
             self.$el.find('[data-by]').removeClass('apos-active');
             var $activeFieldset = self.$el.find('[data-by="' + val + '"]');
             $activeFieldset.addClass('apos-active');
             // Ready to type something
             $activeFieldset.find('input[type="text"]:first').focus();
-            // Don't prevent default browser behavior, just stop bubbling
-            e.stopPropagation();
+            return false;
           });
 
-          // Trigger the default fieldset's radio button to initialize
-          // apos-active. Do it after jquery selective has a chance
-          // to initialize so that the focus stuff works
+          // Send a change event to enable the currently chosen type
+          // after jquery selective initializes
           apos.afterYield(function() {
-            self.$el.find('[data-switcher][value="' + (self.data.by || 'id') + '"]').trigger('click');
+            self.$by.trigger('change');
           });
         };
 
@@ -312,7 +302,7 @@ function AposBlog2(options) {
         AposWidgetEditor.call(self, options);
 
         self.debrief = function(callback) {
-          self.data.by = self.$by.radio();
+          self.data.by = self.$by.val();
           self.data.tags = self.$tags.selective('get', { incomplete: true });
           self.data.limitByTag = parseInt(self.$limitByTag.val(), 10);
           self.data.limitFromPageIds = parseInt(self.$limitFromPageIds.val(), 10);

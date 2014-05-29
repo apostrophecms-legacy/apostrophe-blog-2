@@ -15,24 +15,32 @@
 {% block formBody %}
 
 {# One of the fieldsets will have apos-active at any given time #}
+{# The reset will be hidden #}
 
-<fieldset class="apos-fieldset apos-fieldset-radio" data-by="id">
-  <input type="radio" name="by" value="id" data-switcher />
-  <label>{{ __('By ' + pieceLabel + ' title') }}</label>
-  {{ formSelective('ids', __('Title'), { inline: true, placeholder: __('Type ' + pieceLabel + ' titles here') }) }}
-</fieldset>
+<label class="apos-by-label">
+  Add By
+  <select class="apos-by" name="by">
+    <option value="fromPageIds">Blog</option>
+    <option value="id">Title</option>
+    <option value="tag">Tag</option>
+  </select>
+</label>
 
-<fieldset class="apos-fieldset apos-fieldset-radio" data-by="fromPageIds">
-  <input type="radio" name="by" value="fromPageIds" data-switcher />
+<fieldset class="apos-fieldset apos-fieldset-by" data-by="fromPageIds">
   <label>{{ __('By ' + indexLabel + ' name') }}</label>
+  <p>If you do not specify at least one {{ indexLabel }}, {{ pluralPieceLabel }} from all {{ pluralIndexLabel }} are shown.</p>
   {{ formSelective('fromPageIds', pluralIndexLabel, { inline: true, placeholder: __('Type ' + indexLabel + ' names here') }) }}
   <div>
     {{ __('Max ' + pluralPieceLabel + ' Shown') }}: <input type="text" name="limitFromPageIds" />
   </div>
 </fieldset>
 
-<fieldset class="apos-fieldset apos-fieldset-radio" data-by="tag">
-  <input type="radio" name="by" value="tag" data-switcher />
+<fieldset class="apos-fieldset apos-fieldset-by" data-by="id">
+  <label>{{ __('By ' + pieceLabel + ' title') }}</label>
+  {{ formSelective('ids', __('Title'), { inline: true, placeholder: __('Type ' + pieceLabel + ' titles here') }) }}
+</fieldset>
+
+<fieldset class="apos-fieldset apos-fieldset-by" data-by="tag">
   <label>{{ __('By tag') }}</label>
   {{ formTags('tags', 'Tags', { inline: true }) }}
   <div>
