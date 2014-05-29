@@ -283,8 +283,8 @@ function AposBlog2(options) {
             self.$el.find('[data-by]').removeClass('apos-active');
             var $activeFieldset = self.$el.find('[data-by="' + val + '"]');
             $activeFieldset.addClass('apos-active');
-            // Ready to type something
-            $activeFieldset.find('input[type="text"]:first').focus();
+            // Ready to type something [Deprecated]
+            //$activeFieldset.find('input[type="text"]:first').focus();
             // Don't prevent default browser behavior, just stop bubbling
             e.stopPropagation();
           });
