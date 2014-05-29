@@ -712,7 +712,7 @@ blog2.Blog2 = function(options, callback) {
     (function(options) {
       var self = widget;
       self._apos = self._manager._apos;
-      self.icon = options.icon;
+      self.icon = options.icon || 'icon-blog';
       self.name = options.name || self._manager.indexes.name;
       self.label = options.label || self._manager.indexes.label;
       self.widget = true;
