@@ -1,7 +1,7 @@
 {% extends "baseWidgetEditor.html" %}
 {% include "formMacros.html" %}
 {% block widgetVars %}
-  {% set widgetClass = widgetEditorClass %}
+  {% set widgetClass = widgetEditorClass + " apos-ui apos-no-tabs" %}
 {% endblock %}
 
 {% block title %}
@@ -16,37 +16,44 @@
 
 {# One of the fieldsets will have apos-active at any given time #}
 {# The reset will be hidden #}
+<fieldset class="apos-fieldset apos-fieldset-inset-controller apos-fieldset-select">
+  <label class="apos-by-label apos-wide-label">Add {{ pluralPieceLabel }} By</label>
+    <div class="apos-select-wrapper">
+      <select class="apos-by" name="by" data-lister>
+        <option value="fromPageIds">Blog Name</option>
+        <option value="id">Article Title</option>
+        <option value="tag">Article Tag(s)</option>
+      </select>
+      <div class="apos-select-arrow"></div>
+    </div>
+</fieldset>
 
-<label class="apos-by-label">
-  Add By
-  <select class="apos-by" name="by">
-    <option value="fromPageIds">Blog</option>
-    <option value="id">Title</option>
-    <option value="tag">Tag</option>
-  </select>
-</label>
-
-<fieldset class="apos-fieldset apos-fieldset-by" data-by="fromPageIds">
-  <label>{{ __('By ' + indexLabel + ' name') }}</label>
-  <p>If you do not specify at least one {{ indexLabel }}, {{ pluralPieceLabel }} from all {{ pluralIndexLabel }} are shown.</p>
-  {{ formSelective('fromPageIds', pluralIndexLabel, { inline: true, placeholder: __('Type ' + indexLabel + ' names here') }) }}
-  <div>
-    {{ __('Max ' + pluralPieceLabel + ' Shown') }}: <input type="text" name="limitFromPageIds" />
+<fieldset class="apos-fieldset apos-fieldset-text apos-fieldset-inset apos-fieldset-by" data-by="fromPageIds">
+  <div class="apos-fieldset-inset-inner">
+    <label class="apos-wide-label">{{ __('By ' + indexLabel + ' name') }}</label>
+    <p class="apos-instructions apos-form-inline-instructions">If you do not specify at least one {{ indexLabel }}, {{ pluralPieceLabel }} from all {{ pluralIndexLabel }} are shown.</p>
+    {{ formSelective('fromPageIds', pluralIndexLabel, { inline: true, placeholder: __('Type ' + indexLabel + ' names here') }) }}
+  </div>
+  <div class="apos-fieldset-inset-inner">
+    <label class="apos-wide-label">{{ __('Max ' + pluralPieceLabel + ' Shown') }}:</label>
+    <input type="text" name="limitFromPageIds" class="apos-input-narrow"/>
   </div>
 </fieldset>
 
-<fieldset class="apos-fieldset apos-fieldset-by" data-by="id">
-  <label>{{ __('By ' + pieceLabel + ' title') }}</label>
+<fieldset class="apos-fieldset apos-fieldset-text apos-fieldset-inset apos-fieldset-by" data-by="id">
+  <label class="apos-wide-label">{{ __('By ' + pieceLabel + ' title') }}</label>
   {{ formSelective('ids', __('Title'), { inline: true, placeholder: __('Type ' + pieceLabel + ' titles here') }) }}
 </fieldset>
 
-<fieldset class="apos-fieldset apos-fieldset-by" data-by="tag">
-  <label>{{ __('By tag') }}</label>
-  {{ formTags('tags', 'Tags', { inline: true }) }}
-  <div>
-    {{ __('Max ' + pluralPieceLabel + ' Shown') }}: <input type="text" name="limitByTag" />
+<fieldset class="apos-fieldset apos-fieldset-tags apos-fieldset-inset apos-fieldset-text apos-fieldset-by" data-by="tag">
+  <div class="apos-fieldset-inset-inner">
+    <label class="apos-wide-label">{{ __('By tag') }}</label>
+    {{ formTags('tags', 'Tags', { inline: true }) }}
+  </div>
+  <div class="apos-fieldset-inset-inner">
+    <label class="apos-wide-label">{{ __('Max ' + pluralPieceLabel + ' Shown') }}:</label>
+    <input type="text" name="limitByTag" class="apos-input-narrow" />
   </div>
 </fieldset>
 
 {% endblock %}
-
