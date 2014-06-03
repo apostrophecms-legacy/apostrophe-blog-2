@@ -743,21 +743,27 @@ blog2.Blog2 = function(options, callback) {
       // self.pushAsset('stylesheet', 'widget');
 
       self.addCriteria = function(item, criteria, options) {
-        if ((item.by === 'tag') && (item.tags)) {
-          if (item.tags.length) {
+        if (item.by === 'tag') {
+          if (item.tags && item.tags.length) {
             criteria.tags = { $in: item.tags };
           }
-          if (item.limit) {
-            options.limit = item.limit;
+          if (item.limitByTag) {
+            options.limit = item.limitByTag;
           } else {
-            // Always set an upper limit
-            options.limit = 1000;
+            options.limit = 5;
           }
-        } else if ((item.by === 'id') && (item.ids)) {
-          // Specific IDs were selected, do not look at the limit
-          criteria._id = { $in: item.ids };
-        } else if (item.fromPageIds) {
-          options.fromPageIds = item.fromPageIds;
+        } else if (item.by === 'id') {
+          // Specific IDs were selected, so a limit doesn't make sense
+          criteria._id = { $in: item.ids || []};
+        } else if (item.by === 'fromPageIds') {
+          if (item.limitFromPageIds) {
+            options.limit = item.limitFromPageIds;
+          } else {
+            options.limit = 5;
+          }
+          if (item.fromPageIds && item.fromPageIds.length) {
+            options.fromPageIds = item.fromPageIds;
+          }
         }
       };
 
