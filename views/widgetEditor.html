@@ -16,19 +16,23 @@
 
 {# One of the fieldsets will have apos-active at any given time #}
 {# The reset will be hidden #}
-<fieldset class="apos-fieldset apos-fieldset-inset-controller apos-fieldset-select">
+<fieldset class="apos-fieldset apos-fieldset-inset-controller apos-fieldset-select apos-fieldset-lister">
   <label class="apos-by-label apos-wide-label">Add {{ pluralPieceLabel }} By</label>
-    <div class="apos-select-wrapper">
+    <div class="apos-select-wrapper apos-inline-input">
       <select class="apos-by" name="by" data-lister>
         <option value="fromPageIds">Blog Name</option>
         <option value="id">Article Title</option>
         <option value="tag">Article Tag(s)</option>
       </select>
-      <div class="apos-select-arrow"></div>
+      <span class="apos-ui-container apos-ui-inline-btn">
+        <div class="apos-select-arrow apos-ui-btn">
+          <i class="icon icon-caret-down"></i>
+        </div>
+      </span>
     </div>
 </fieldset>
 
-<fieldset class="apos-fieldset apos-fieldset-text apos-fieldset-inset apos-fieldset-by" data-by="fromPageIds">
+<fieldset class="apos-fieldset apos-fieldset-text apos-fieldset-inset apos-fieldset-selective apos-fieldset-by" data-by="fromPageIds">
   <div class="apos-fieldset-inset-inner">
     <label class="apos-wide-label">{{ __('By ' + indexLabel + ' name') }}</label>
     <p class="apos-instructions apos-form-inline-instructions">If you do not specify at least one {{ indexLabel }}, {{ pluralPieceLabel }} from all {{ pluralIndexLabel }} are shown.</p>
