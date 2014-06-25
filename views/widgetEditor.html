@@ -1,15 +1,17 @@
 {% extends "baseWidgetEditor.html" %}
 {% include "formMacros.html" %}
-{% block widgetVars %}
-  {% set widgetClass = widgetEditorClass + " apos-ui apos-no-tabs" %}
+
+
+{% block modalClass %}
+  {{widgetEditorClass}} apos-ui-modal-no-sidebar
 {% endblock %}
 
-{% block title %}
+{% block modalLabel %}
   {{ __('Display %s', pluralPieceLabel ) }}
 {% endblock %}
 
-{% block instructions %}
-{{ __('You can select content to display by entering the titles of individual %s, %s, or tags.', pluralPieceLabel | lower, pluralIndexLabel | lower ) }}
+{% block modalInstructions %}
+<p>{{ __('You can select content to display by entering the titles of individual %s, %s, or tags.', pluralPieceLabel | lower, pluralIndexLabel | lower ) }}</p>
 {% endblock %}
 
 {% block formBody %}
@@ -32,11 +34,11 @@
     </div>
 </fieldset>
 
-<fieldset class="apos-fieldset apos-fieldset-text apos-fieldset-inset apos-fieldset-selective apos-fieldset-by" data-by="fromPageIds">
+<fieldset class="apos-fieldset apos-fieldset-text apos-fieldset-inset apos-fieldset-selective apos-fieldset-by apos-fieldset-no-margin" data-by="fromPageIds">
   <div class="apos-fieldset-inset-inner">
     <label class="apos-wide-label">{{ __('By ' + indexLabel + ' name') }}</label>
-    <p class="apos-instructions apos-form-inline-instructions">If you do not specify at least one {{ indexLabel }}, {{ pluralPieceLabel }} from all {{ pluralIndexLabel }} are shown.</p>
     {{ formSelective('fromPageIds', pluralIndexLabel, { inline: true, placeholder: __('Type ' + indexLabel + ' names here') }) }}
+    <p class="apos-help">If you do not specify at least one {{ indexLabel }}, {{ pluralPieceLabel }} from all {{ pluralIndexLabel }} are shown.</p>
   </div>
   <div class="apos-fieldset-inset-inner">
     <label class="apos-wide-label">{{ __('Max ' + pluralPieceLabel + ' Shown') }}:</label>
@@ -44,12 +46,12 @@
   </div>
 </fieldset>
 
-<fieldset class="apos-fieldset apos-fieldset-text apos-fieldset-inset apos-fieldset-by" data-by="id">
+<fieldset class="apos-fieldset apos-fieldset-text apos-fieldset-inset apos-fieldset-by apos-fieldset-no-margin" data-by="id">
   <label class="apos-wide-label">{{ __('By ' + pieceLabel + ' title') }}</label>
   {{ formSelective('ids', __('Title'), { inline: true, placeholder: __('Type ' + pieceLabel + ' titles here') }) }}
 </fieldset>
 
-<fieldset class="apos-fieldset apos-fieldset-tags apos-fieldset-inset apos-fieldset-text apos-fieldset-by" data-by="tag">
+<fieldset class="apos-fieldset apos-fieldset-tags apos-fieldset-inset apos-fieldset-text apos-fieldset-by apos-fieldset-no-margin" data-by="tag">
   <div class="apos-fieldset-inset-inner">
     <label class="apos-wide-label">{{ __('By tag') }}</label>
     {{ formTags('tags', 'Tags', { inline: true }) }}
