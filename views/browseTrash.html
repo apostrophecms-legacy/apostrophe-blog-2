@@ -1,25 +1,46 @@
-<div class="apos-modal apos-template {{ browseTrashClass }}">
-  <h3>{% block action %}{{ __('Browse Trash: %s', __(pluralLabel) | e ) }}{% endblock %}</h3>
-  <div class="apos-modal-body">
-    <div class="apos-modal-filters">
-      {{ __('Search') }}: <input type="text" name="search" /> <input type="submit" data-search-submit class="apos-search-submit" value="{{ __('Go') }}" /> <a href="#" class="apos-remove-search" data-remove-search>x</a>
-    </div>
-    <table data-items class="apos-manage-table">
-      <tr>
-        <th data-title>{{ __('Title') }}</th>
-        <th data-date>{{ __('Date') }}</th>
-      </tr>
-      <tr class="apos-template" data-item>
-        <td>
-          <span><a href="#" data-title>{{ __('Sample Title') }}</a></span>
-        </td>
-        <td><span data-date></span></td>
-      </tr>
-    </table>
-    {# Container for pager, which gets rendered here by js #}
-    <div data-pager-box></div>
+{% extends 'baseModal.html' %}
+{% include 'uiMacros.html' %}
+{% include 'snippets:snippetMacros.html' %}
+
+{% block modalClass %}
+  {{ browseTrashClass }} apos-ui-modal-no-sidebar
+{% endblock %}
+
+{% block modalLabel %}
+  {{ __('Browse Trash: %s', __(pluralLabel) | e ) }}
+{% endblock %}
+
+{% block modalFilters %}
+  <div class="apos-ui-modal-filters-inner">
+    {{ snippetSearchFilter() }}
   </div>
-  <div class="apos-modal-footer">
-    <a href="#" data-action="dismiss" class="apos-control apos-button apos-cancel">{{ __('Done') }}</a>
-  </div>
-</div>
+
+  {# <div class="apos-modal-filters">
+    {{ __('Search') }}: <input type="text" name="search" /> <input type="submit" data-search-submit class="apos-search-submit" value="{{ __('Go') }}" /> <a href="#" class="apos-remove-search" data-remove-search>x</a>
+  </div> #}
+{% endblock %}
+
+{% block modalControls %}
+  {{ renderProgressBtn({dataAttrs: 'data-cancel', float: 'left', label: 'Done', arrow: 'left'}) }}
+{% endblock %}
+
+
+{# <div class="apos-modal apos-template {{ browseTrashClass }}"> #}
+  {# <h3>{% block action %}{{ __('Browse Trash: %s', __(pluralLabel) | e ) }}{% endblock %}</h3> #}
+  {# <div class="apos-modal-body"> #}
+{% block modalBody %}
+  <table data-items class="apos-manage-table">
+    <tr>
+      <th data-title>{{ __('Title') }}</th>
+      <th data-date>{{ __('Date') }}</th>
+    </tr>
+    <tr class="apos-template" data-item>
+      <td>
+        <span><a href="#" data-title>{{ __('Sample Title') }}</a></span>
+      </td>
+      <td><span data-date></span></td>
+    </tr>
+  </table>
+  {# Container for pager, which gets rendered here by js #}
+  <div data-pager-box></div>
+{% endblock %}
