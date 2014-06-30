@@ -1,22 +1,23 @@
 {% extends "baseWidgetEditor.html" %}
 {% include "formMacros.html" %}
-{% block widgetVars %}
-  {% set widgetClass = widgetEditorClass + " apos-ui apos-no-tabs" %}
+
+{% block modalClass %}
+  {{super()}} {{ widgetEditorClass }}
 {% endblock %}
 
-{% block title %}
+{% block modalLabel %}
   {{ __('Display %s', pluralPieceLabel ) }}
 {% endblock %}
 
-{% block instructions %}
-{{ __('You can select content to display by entering the titles of individual %s, %s, or tags.', pluralPieceLabel | lower, pluralIndexLabel | lower ) }}
+{% block modalInstructions %}
+<p>{{ __('You can select content to display by entering the titles of individual %s, %s, or tags.', pluralPieceLabel | lower, pluralIndexLabel | lower ) }}</p>
 {% endblock %}
 
 {% block formBody %}
 
 {# One of the fieldsets will have apos-active at any given time #}
 {# The reset will be hidden #}
-<fieldset class="apos-fieldset apos-fieldset-inset-controller apos-fieldset-select apos-fieldset-lister">
+<fieldset data-sources class="apos-fieldset apos-fieldset-inset-controller apos-fieldset-select apos-fieldset-lister">
   <label class="apos-by-label apos-wide-label">Add {{ pluralPieceLabel }} By</label>
     <div class="apos-select-wrapper apos-inline-input">
       <select class="apos-by" name="by" data-lister>

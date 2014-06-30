@@ -209,7 +209,29 @@ function AposBlog2(options) {
             self.data.limitFromPageIds = self.defaultLimit;
           }
           self.$by = self.$el.findByName('by');
-          self.$by.val(self.data.by || 'fromPageIds');
+
+          if (options.options.sources) {
+            var sources = options.options.sources;
+            // The developer used the sources option to limit where
+            // things can come from, and/or re-order the three choices
+            var choices = {};
+            choices.title = self.$by.find('[value="id"]');
+            choices.tag = self.$by.find('[value="tag"]');
+            choices.page = self.$by.find('[value="fromPageIds"]');
+            choices.title.remove();
+            choices.tag.remove();
+            choices.page.remove();
+            _.each(sources, function(source) {
+              self.$by.append(choices[source]);
+            });
+            if (self.$by.find('[value]').length == 1) {
+              // Don't display a dropdown with only one choice.
+              // Keep it around to act as a hidden element
+              self.$el.find('[data-sources]').hide();
+            }
+          }
+          self.$by.val(self.data.by || self.$by.find('[value]:first').attr('value'));
+
           self.$tags = self.$el.find('[data-name="tags"]');
           apos.enableTags(self.$tags, self.data.tags);
           self.$limitByTag = self.$el.findByName('limitByTag');

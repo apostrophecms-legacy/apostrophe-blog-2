@@ -824,7 +824,6 @@ blog2.Blog2 = function(options, callback) {
     // This widget should be part of the default set of widgets for areas
     // (note devs can still override the list)
     self._apos.defaultControls.push(widget.name);
-
     self._apos.addWidgetType(widget.name, widget);
 
     // For your overriding convenience; override to change the
