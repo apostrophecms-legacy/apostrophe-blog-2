@@ -91,10 +91,10 @@
     {# Search filter markup borrowed from Stuart, TODO: ask him about #}
     {# suitable styles from a related project #}
     <form class="apos-search-form filter-search{% if query.search %} searched{% endif %}" method="GET" action="">
-      <div class="search-title">Search For:</div>
+      <div class="search-title">{{ __('Search For') }}:</div>
       <div class="search-inputs">
         <input name="search" value="{{ query.search | e }}" class="search-field" />
-        <input type="submit" class="search-submit" value="search" />
+        <input type="submit" class="search-submit" value="{{ __('search') }}" />
         {% if query.search %}
           <a class="search-clear" href="{{ here({ search: '' }) }}">X</a>
         {% endif %}
