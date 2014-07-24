@@ -130,11 +130,9 @@ blog2.Blog2 = function(options, callback) {
         {
           name: 'delete-page',
           label: 'Move Entire ' + self.indexLabel + ' to Trash'
-        },
-        {
-          name: 'reorganize-page',
-          label: 'Reorganize Site'
         }
+        // the reorg menu used to be added here but is now added
+        // in the pages module only in the case of `req.permissions.admin = true`
       ])
     });
     fancyPage.FancyPage.call(self.indexes, indexesOptions, null);
