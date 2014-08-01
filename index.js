@@ -156,6 +156,20 @@ blog2.Blog2 = function(options, callback) {
             return callback(null);
           });
         },
+        tags: function(callback) {
+          if (self.pieces.options.tags === false) {
+            return setImmediate(callback);
+          }
+          var distinctOptions = _.cloneDeep(options);
+          distinctOptions.getDistinct = 'tags';
+          return self.pieces.get(req, criteria, distinctOptions, function(err, tags) {
+            if (err) {
+              return callback(err);
+            }
+            results.tags = tags;
+            return callback(null);
+          });
+        }
       }, function(err) {
         if (err) {
           return callback(err);
@@ -314,6 +328,9 @@ blog2.Blog2 = function(options, callback) {
   // to the normal view of content.
 
   self.addCriteria = function(req, criteria, options) {
+    if (req.query.tag) {
+      options.tags = [ self._apos.sanitizeString(req.query.tag) ];
+    }
 
     self.addDateCriteria(req, criteria, options);
 
@@ -563,7 +580,6 @@ blog2.Blog2 = function(options, callback) {
           filterCriteria
         ]
       };
-
       return superPiecesGet(req, criteria, options, callback);
     };
 
@@ -800,7 +816,7 @@ blog2.Blog2 = function(options, callback) {
         return self._manager.pieces.get(req, criteria, options, function(err, results) {
           if (err) {
             item._pieces = [];
-            console.log(err);
+            console.error(err);
             return callback(err);
           }
           var pieces = results.pages;
