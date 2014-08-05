@@ -28,8 +28,10 @@ blog2.Blog2 = function(options, callback) {
   self._dateInSlug = (options.dateInSlug === undefined) ? true : options.dateInSlug;
   self.pieceName = options.pieceName || 'blogPost';
   self.pieceLabel = options.pieceLabel || 'Blog Post';
+  self.pluralPieceLabel = options.pluralPieceLabel || self.pieceLabel + 's';
   self.indexName = options.indexName || 'blog';
   self.indexLabel = options.indexLabel || 'Blog';
+  self.pluralIndexLabel = options.pluralIndexLabel || self.indexLabel + 's';
 
   self._browser = options.browser || {};
 
@@ -70,6 +72,7 @@ blog2.Blog2 = function(options, callback) {
     _.defaults(indexesOptions, {
       name: self.indexName,
       label: self.indexLabel,
+      pluralLabel: self.pluralIndexLabel,
       apos: options.apos,
       app: options.app,
       pages: options.pages,
@@ -432,6 +435,7 @@ blog2.Blog2 = function(options, callback) {
     _.defaults(piecesOptions, {
       name: self.pieceName,
       label: self.pieceLabel,
+      pluralLabel: self.pluralPieceLabel,
       apos: options.apos,
       app: options.app,
       pages: options.pages,
