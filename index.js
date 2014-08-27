@@ -97,6 +97,14 @@ blog2.Blog2 = function(options, callback) {
         label: 'And From These Blogs',
         type: 'joinByArray',
         idsField: 'andFromPagesIds',
+        relationship: [
+          {
+            name: 'tag',
+            label: 'With this tag (optional)',
+            type: 'string',
+          }
+        ],
+        relationshipsField: 'andFromPagesRelationships',
         withType: 'blog'
       }
     ].concat(indexesOptions.addFields || []);
@@ -522,16 +530,25 @@ blog2.Blog2 = function(options, callback) {
     fancyPage.FancyPage.call(self.pieces, piecesOptions, null);
     var superPiecesGet = self.pieces.get;
 
-    // The get method for pieces supports a "fromPages" option, which retrieves only
-    // pieces that are children of the specified index page objects (only the
-    // path and level properties are needed). addCriteria sets this up for the current
-    // index page, plus any pages the user has elected to aggregate it with.
+    // The get method for pieces supports a "fromPages" option,
+    // which retrieves only pieces that are children of the
+    // specified index page objects (only the path and level
+    // properties are needed). addCriteria sets this up for
+    // the current index page, plus any pages the user has
+    // elected to aggregate it with.
     //
-    // The get method for pieces also implements "publishedAt" which can be
-    // set to "any" to return material that has not reached its publication date yet.
+    // Each item in `fromPages` can be a page object, or an
+    // object with `item` and `relationship` properties. If
+    // the latter, `item` is the page object, and
+    // `relationship.tag`, if present, is a tag to further
+    // filter the pieces of this particular index page by.
     //
-    // If the sort option has not been passed in, it will be set to blog order
-    // (reverse chronological on publishedAt).
+    // The get method for pieces also implements "publishedAt"
+    // which can be set to "any" to return material that has not
+    // reached its publication date yet.
+    //
+    // If the sort option has not been passed in, it will be set
+    // to blog order (reverse chronological on publishedAt).
 
     self.pieces.get = function(req, userCriteria, options, callback) {
       var criteria;
@@ -553,8 +570,22 @@ blog2.Blog2 = function(options, callback) {
 
       if (options.fromPages) {
         var clauses = [];
-        _.each(options.fromPages, function(page) {
-          clauses.push({ path: new RegExp('^' + RegExp.quote(page.path + '/')), level: page.level + 1 });
+        _.each(options.fromPages, function(_page) {
+          var tag;
+          if (_page._id) {
+            page = _page;
+          } else {
+            page = _page.item;
+            tag = _page.relationship.tag;
+          }
+          var clause = {
+            path: new RegExp('^' + RegExp.quote(page.path + '/')),
+            level: page.level + 1
+          };
+          if (tag) {
+            clause.tags = { $in: [ tag ] };
+          }
+          clauses.push(clause);
         });
         if (clauses.length) {
           if (clauses.length === 1) {

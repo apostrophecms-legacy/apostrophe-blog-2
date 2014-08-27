@@ -12,6 +12,19 @@ function AposBlog2(options) {
   self._options = options;
   self._action = options.action;
 
+  // Add jquery autocomplete of tags to the
+  // tag field, which is otherwise a plain vanilla
+  // relationship string field
+  $('body').on('keydown', '[data-name="_andFromPages"] [data-name="tag"]', function() {
+    var $tag = $(this);
+    if (!$tag.data('autocomplete')) {
+      $tag.data('autocomplete', true);
+      $tag.autocomplete({
+        source: '/apos/autocomplete-tag'
+      });
+    }
+  });
+
   $('body').on('click', '[data-new-' + apos.cssName(options.pieceName) + ']', function() {
     var page = apos.data.aposPages.page;
 
