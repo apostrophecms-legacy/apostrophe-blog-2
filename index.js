@@ -5,6 +5,7 @@ var RSS = require('rss');
 var url = require('url');
 var absolution = require('absolution');
 var moment = require('moment');
+var util = require('util');
 
 module.exports = blog2;
 
@@ -346,9 +347,6 @@ blog2.Blog2 = function(options, callback) {
     self.addDateCriteria(req, criteria, options);
 
     options.fromPages = [ req.page ];
-    if (req.page._andFromPages) {
-      options.fromPages = options.fromPages.concat(req.page._andFromPages);
-    }
 
     if (req.query.search) {
       options.search = self._apos.sanitizeString(req.query.search);
@@ -543,10 +541,10 @@ blog2.Blog2 = function(options, callback) {
 
       var fetched = {};
       var tagsByPageId = {};
-      fetched[page._id] = true;
       var recursed = {};
 
       _.each(pages, function(page) {
+        fetched[page._id] = true;
         if (page._andFromPages) {
           _.each(page._andFromPages || [], function(pair) {
             pages.push(pair.item);
@@ -560,13 +558,6 @@ blog2.Blog2 = function(options, callback) {
         function() { return !done; },
         function(callback) {
           var ids = [];
-          _.each(pages, function(page, i) {
-            var id = page._id;
-            if (!i) {
-              recursed[id] = true;
-            }
-            fetched[id] = true;
-          });
           _.each(pages, function(page) {
             if (_.has(recursed, page._id)) {
               return;
@@ -584,7 +575,7 @@ blog2.Blog2 = function(options, callback) {
             done = true;
             return setImmediate(callback);
           }
-          return self.indexes.get(req, { _id: { $in: ids } }, { fields: { title: 1, slug: 1, path: 1, level: 1, rank: 1, andFromPagesIds: 1, andFromPagesRelationships: 1, withJoins: false } }, function(err, results) {
+          return self.indexes.get(req, { _id: { $in: ids } }, { fields: { title: 1, slug: 1, path: 1, level: 1, rank: 1, andFromPagesIds: 1, andFromPagesRelationships: 1 }, withJoins: false }, function(err, results) {
             if (err) {
               return callback(err);
             }
@@ -618,7 +609,7 @@ blog2.Blog2 = function(options, callback) {
           });
 
           function recurseTags(page, tags, antecedents) {
-            if (antecedents.contains(page._id)) {
+            if (_.contains(antecedents, page._id)) {
               // Avoid infinite loops. We don't forbid
               // visiting the same page twice along different
               // tag paths, but we do have to avoid getting
@@ -626,7 +617,7 @@ blog2.Blog2 = function(options, callback) {
               // C aggregates A.
               return;
             }
-            _.each(_page.andFromPagesIds || [], function(id) {
+            _.each(page.andFromPagesIds || [], function(id) {
               var _page = pagesById[id];
               if (_page) {
                 var rel = ((page.andFromPagesRelationships || {})[id]) || {};
@@ -637,12 +628,12 @@ blog2.Blog2 = function(options, callback) {
                   newTags = [];
                 }
                 recurseTags(pagesById[id], tags.concat(newTags), antecedents.concat(page._id));
-                if (!tagsByPageId[page._id]) {
-                  tagsByPageId[page._id] = [];
-                }
-                tagsByPageId[page._id].push(tags);
               }
             });
+            if (!tagsByPageId[page._id]) {
+              tagsByPageId[page._id] = [];
+            }
+            tagsByPageId[page._id].push(tags);
           }
 
           // Yield a series of "or" clauses for the
@@ -715,6 +706,8 @@ blog2.Blog2 = function(options, callback) {
         });
       }
 
+      var results;
+
       return async.series({
         fromPages: function(callback) {
           if (!options.fromPages) {
@@ -751,9 +744,20 @@ blog2.Blog2 = function(options, callback) {
               filterCriteria
             ]
           };
-          return superPiecesGet(req, criteria, options, callback);
+          return superPiecesGet(req, criteria, options, function(err, _results) {
+            if (err) {
+              return callback(err);
+            }
+            results = _results;
+            return callback(null);
+          });
         }
-      }, callback);
+      }, function(err) {
+        if (err) {
+          return callback(err);
+        }
+        return callback(null, results);
+      });
     };
 
     self.pieces.dispatch = function(req, callback) {
