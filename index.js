@@ -5,6 +5,7 @@ var RSS = require('rss');
 var url = require('url');
 var absolution = require('absolution');
 var moment = require('moment');
+var util = require('util');
 
 module.exports = blog2;
 
@@ -349,9 +350,6 @@ blog2.Blog2 = function(options, callback) {
     self.addDateCriteria(req, criteria, options);
 
     options.fromPages = [ req.page ];
-    if (req.page._andFromPages) {
-      options.fromPages = options.fromPages.concat(req.page._andFromPages);
-    }
 
     if (req.query.search) {
       options.search = self._apos.sanitizeString(req.query.search);
@@ -531,20 +529,160 @@ blog2.Blog2 = function(options, callback) {
       ]
     });
     fancyPage.FancyPage.call(self.pieces, piecesOptions, null);
+
+    // Given an array of index pages, yields a mongodb
+    // criteria object which will pass both the pieces for the
+    // original pages and the pieces for any pages they aggregate
+    // with, taking tag filtering into account.
+
+    self.aggregateCriteria = function(req, _pages, callback) {
+
+      // Shallow copy to avoid modifying argument
+      pages = _.clone(_pages);
+
+      var done = false;
+
+      var fetched = {};
+      var tagsByPageId = {};
+      var recursed = {};
+
+      _.each(pages, function(page) {
+        fetched[page._id] = true;
+        if (page._andFromPages) {
+          _.each(page._andFromPages || [], function(pair) {
+            pages.push(pair.item);
+            fetched[pair.item._id] = true;
+          });
+          recursed[page._id] = true;
+        }
+      });
+
+      return async.whilst(
+        function() { return !done; },
+        function(callback) {
+          var ids = [];
+          _.each(pages, function(page) {
+            if (_.has(recursed, page._id)) {
+              return;
+            }
+            recursed[page._id] = true;
+            _.each(page.andFromPagesIds || [], function(id) {
+              if (_.has(fetched, id)) {
+                return;
+              }
+              ids.push(id);
+              fetched[id] = true;
+            });
+          });
+          if (!ids.length) {
+            done = true;
+            return setImmediate(callback);
+          }
+          return self.indexes.get(req, { _id: { $in: ids } }, { fields: { title: 1, slug: 1, path: 1, level: 1, rank: 1, andFromPagesIds: 1, andFromPagesRelationships: 1 }, withJoins: false }, function(err, results) {
+            if (err) {
+              return callback(err);
+            }
+            pages = pages.concat(results.pages);
+            return callback(null);
+          });
+        },
+        function(err) {
+          if (err) {
+            return callback(err);
+          }
+
+          // Recurse through the pages to build all the
+          // possible tag lists by which a blog might
+          // be filtered. If A aggregates B, filtering by "dog",
+          // and B aggregates C, filtering by "cat", then
+          // A should only aggregate posts in C that are
+          // tagged both "dog" and "cat". If A and C both
+          // aggregate D, things are even more interesting.
+
+          var pagesById = {};
+          var visited = {};
+          _.each(pages, function(page) {
+            pagesById[page._id] = page;
+          });
+
+          // Recurse everything aggregated with the original
+          // group of pages
+          _.each(_pages, function(page) {
+            recurseTags(page, [], []);
+          });
+
+          function recurseTags(page, tags, antecedents) {
+            if (_.contains(antecedents, page._id)) {
+              // Avoid infinite loops. We don't forbid
+              // visiting the same page twice along different
+              // tag paths, but we do have to avoid getting
+              // caught in situations where A aggregates C and
+              // C aggregates A.
+              return;
+            }
+            _.each(page.andFromPagesIds || [], function(id) {
+              var _page = pagesById[id];
+              if (_page) {
+                var rel = ((page.andFromPagesRelationships || {})[id]) || {};
+                var newTags;
+                if (rel.tag) {
+                  newTags = [ rel.tag ];
+                } else {
+                  newTags = [];
+                }
+                recurseTags(pagesById[id], tags.concat(newTags), antecedents.concat(page._id));
+              }
+            });
+            if (!tagsByPageId[page._id]) {
+              tagsByPageId[page._id] = [];
+            }
+            tagsByPageId[page._id].push(tags);
+          }
+
+          // Yield a series of "or" clauses for the
+          // pages we've found
+          var clauses = [];
+          _.each(pages, function(page) {
+            var clause = {
+              path: new RegExp('^' + RegExp.quote(page.path + '/')),
+              level: page.level + 1
+            };
+            var tagPaths = tagsByPageId[page._id];
+            if (tagPaths) {
+              if (_.find(tagPaths, function(tagPath) {
+                return !tagPath.length;
+              })) {
+                // Along at least one path this page's
+                // children are unrestricted
+              } else {
+                // TODO: we could optimize these
+                // queries more, reducing more redundancies.
+                // Then again mongodb might do it for us and
+                // it's rare for this to get really out of hand
+                _.each(tagPaths, function(tagPath) {
+                  clause.tags = { $all: tagPath };
+                });
+              }
+            }
+            clauses.push(clause);
+          });
+          return callback(null, clauses);
+        }
+      );
+    };
+
     var superPiecesGet = self.pieces.get;
 
-    // The get method for pieces supports a "fromPages" option,
+    // The get method for pieces supports a "fromPageIds" option,
     // which retrieves only pieces that are children of the
-    // specified index page objects (only the path and level
-    // properties are needed). addCriteria sets this up for
-    // the current index page, plus any pages the user has
-    // elected to aggregate it with.
+    // specified index pages. "fromPages" is also supported,
+    // allowing objects (only the path and level
+    // properties are needed).
     //
-    // Each item in `fromPages` can be a page object, or an
-    // object with `item` and `relationship` properties. If
-    // the latter, `item` is the page object, and
-    // `relationship.tag`, if present, is a tag to further
-    // filter the pieces of this particular index page by.
+    // When "fromPages" is used, any content that the specified
+    // blogs aggregate from other blogs is also automatically
+    // included. You do NOT need to specify all of the
+    // aggregated blogs manually in fromPages.
     //
     // The get method for pieces also implements "publishedAt"
     // which can be set to "any" to return material that has not
@@ -558,12 +696,12 @@ blog2.Blog2 = function(options, callback) {
       var filterCriteria = {};
 
       if (options.fromPageIds) {
-        return self._apos.get(req, { _id: { $in: options.fromPageIds } }, { path: 1, level: 1 }, function(err, results) {
+        return self._apos.get(req, { _id: { $in: options.fromPageIds } }, { path: 1, level: 1, andFromPagesIds: 1, andFromPagesRelationships: 1 }, function(err, results) {
           if (err) {
             return callback(err);
           }
-          // Recursive invocation now that we have enough finroatmion
-          // about the pages
+          // Recursive invocation now that we have enough
+          // information about the pages
           var innerOptions = _.cloneDeep(options);
           delete innerOptions.fromPageIds;
           innerOptions.fromPages = results.pages;
@@ -571,54 +709,58 @@ blog2.Blog2 = function(options, callback) {
         });
       }
 
-      if (options.fromPages) {
-        var clauses = [];
-        _.each(options.fromPages, function(_page) {
-          var tag;
-          if (_page._id) {
-            page = _page;
-          } else {
-            page = _page.item;
-            tag = _page.relationship.tag;
+      var results;
+
+      return async.series({
+        fromPages: function(callback) {
+          if (!options.fromPages) {
+            return setImmediate(callback);
           }
-          var clause = {
-            path: new RegExp('^' + RegExp.quote(page.path + '/')),
-            level: page.level + 1
+          return self.aggregateCriteria(req, options.fromPages, function(err, clauses) {
+            if (err) {
+              return callback(err);
+            }
+            if (clauses.length) {
+              filterCriteria.$or = clauses;
+            }
+            return callback(null);
+          });
+        },
+        get: function(callback) {
+          // If options.publishedAt is 'any', we're in the admin interface and should be
+          // able to see articles whose publication date has not yet arrived. Otherwise,
+          // show only published stuff
+          if (options.publishedAt === 'any') {
+            // Do not add our usual criteria for publication date. Note
+            // that userCriteria may still examine publication date
+          } else {
+            filterCriteria.publishedAt = { $lte: new Date() };
+          }
+
+          if (!options.sort) {
+            options.sort = { publishedAt: -1 };
+          }
+
+          criteria = {
+            $and: [
+              userCriteria,
+              filterCriteria
+            ]
           };
-          if (tag) {
-            clause.tags = { $in: [ tag ] };
-          }
-          clauses.push(clause);
-        });
-        if (clauses.length) {
-          if (clauses.length === 1) {
-            filterCriteria = clauses[0];
-          } else {
-            filterCriteria.$or = clauses;
-          }
+          return superPiecesGet(req, criteria, options, function(err, _results) {
+            if (err) {
+              return callback(err);
+            }
+            results = _results;
+            return callback(null);
+          });
         }
-      }
-      // If options.publishedAt is 'any', we're in the admin interface and should be
-      // able to see articles whose publication date has not yet arrived. Otherwise,
-      // show only published stuff
-      if (options.publishedAt === 'any') {
-        // Do not add our usual criteria for publication date. Note
-        // that userCriteria may still examine publication date
-      } else {
-        filterCriteria.publishedAt = { $lte: new Date() };
-      }
-
-      if (!options.sort) {
-        options.sort = { publishedAt: -1 };
-      }
-
-      criteria = {
-        $and: [
-          userCriteria,
-          filterCriteria
-        ]
-      };
-      return superPiecesGet(req, criteria, options, callback);
+      }, function(err) {
+        if (err) {
+          return callback(err);
+        }
+        return callback(null, results);
+      });
     };
 
     self.pieces.dispatch = function(req, callback) {
