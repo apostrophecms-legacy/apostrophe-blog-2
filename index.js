@@ -177,7 +177,10 @@ blog2.Blog2 = function(options, callback) {
             if (err) {
               return callback(err);
             }
-            results.tags = tags;
+            // These weren't being passed to the template.
+            // Now they're stuffed in piecesTags. Arguably,
+            // the name should derive from piecesPlural. - Joel
+            req.extras.piecesTags = tags;
             return callback(null);
           });
         }
