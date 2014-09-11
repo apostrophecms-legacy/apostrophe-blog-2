@@ -13,9 +13,12 @@ function AposBlog2(options) {
   self._action = options.action;
 
   // Add jquery autocomplete of tags to the
-  // tag field, which is otherwise a plain vanilla
-  // relationship string field
-  $('body').on('keydown', '[data-name="_andFromPages"] [data-name="tag"]', function() {
+  // tag field for aggregation, which is otherwise
+  // a plain vanilla relationship string field.
+  // Do this both for page settings and for the widget
+  $('body').on('keydown',
+    '[data-name="_andFromPages"] [data-name="tag"], ' +
+    '[data-by="fromPageIds"] [data-name="tag"]', function() {
     var $tag = $(this);
     if (!$tag.data('autocomplete')) {
       $tag.data('autocomplete', true);
@@ -269,19 +272,18 @@ function AposBlog2(options) {
 
           self.pending++;
 
-          $.jsonCall('/apos-pages/autocomplete', { values: self.data.ids || [], type: manager.pieceName }, function(data) {
-            self.$ids.selective({
-              data: data,
-              source: function(_r, callback) {
-                var r = _.cloneDeep(_r);
-                r.type = manager.pieceName;
-                $.jsonCall('/apos-pages/autocomplete', r, callback);
-              },
-              sortable: true,
-              limit: options.options.limit
-            });
-
-            self.completedTask();
+          self.$ids.selective({
+            data: self.data.ids || [],
+            source: function(_r, callback) {
+              var r = _.cloneDeep(_r);
+              r.type = manager.pieceName;
+              $.jsonCall('/apos-pages/autocomplete', r, callback);
+            },
+            sortable: true,
+            limit: options.options.limit,
+            afterSet: function() {
+              self.completedTask();
+            }
           });
 
           // Set up jquery selective to autocomplete the titles
@@ -291,18 +293,18 @@ function AposBlog2(options) {
 
           self.pending++;
 
-          $.jsonCall('/apos-pages/autocomplete', { values: self.data.fromPageIds || [], type: manager.indexName }, function(data) {
-            self.$fromPageIds.selective({
-              data: data,
-              source: function(_r, callback) {
-                var r = _.cloneDeep(_r);
-                r.type = manager.indexName;
-                $.jsonCall('/apos-pages/autocomplete', r, callback);
-              },
-              sortable: false
-            });
-
-            self.completedTask();
+          self.$fromPageIds.selective({
+            data: self.data.fromPageIds || [],
+            extras: true,
+            source: function(_r, callback) {
+              var r = _.cloneDeep(_r);
+              r.type = manager.indexName;
+              $.jsonCall('/apos-pages/autocomplete', r, callback);
+            },
+            sortable: false,
+            afterSet: function() {
+              self.completedTask();
+            }
           });
 
           self.$by.on('change', function() {

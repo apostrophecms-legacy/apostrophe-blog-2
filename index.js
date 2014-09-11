@@ -626,7 +626,11 @@ blog2.Blog2 = function(options, callback) {
                 var rel = ((page.andFromPagesRelationships || {})[id]) || {};
                 var newTags;
                 if (rel.tag) {
-                  newTags = [ rel.tag ];
+                  // Calling filterTag here is a lazy workaround
+                  // for not having a true tag field type for
+                  // relationships. Makes sure the case is right.
+                  // -Tom
+                  newTags = [ self._apos.filterTag(rel.tag) ];
                 } else {
                   newTags = [];
                 }
@@ -696,17 +700,28 @@ blog2.Blog2 = function(options, callback) {
       var filterCriteria = {};
 
       if (options.fromPageIds) {
-        return self._apos.get(req, { _id: { $in: options.fromPageIds } }, { path: 1, level: 1, andFromPagesIds: 1, andFromPagesRelationships: 1 }, function(err, results) {
-          if (err) {
-            return callback(err);
+        // Trick aggregateCriteria into handling
+        // this case for us by inventing a page object
+        // that aggregates the page IDs the widget
+        // is really interested in
+        var page = {};
+        if (!options.fromPageIds.length) {
+          filterCriteria = { _never: true };
+        } else {
+          var ids = options.fromPageIds;
+          if (typeof(ids) === 'object') {
+            page.andFromPagesIds = _.pluck(ids, 'value');
+            var relationships = {};
+            page.andFromPagesRelationships = relationships;
+            _.each(ids, function(id) {
+              relationships[id.value] = { tag: id.tag };
+            });
+          } else {
+            page.andFromPagesIds = ids;
+            page.andFromPagesRelationships = {};
           }
-          // Recursive invocation now that we have enough
-          // information about the pages
-          var innerOptions = _.cloneDeep(options);
-          delete innerOptions.fromPageIds;
-          innerOptions.fromPages = results.pages;
-          return self.pieces.get(req, userCriteria, innerOptions, callback);
-        });
+          options.fromPages = [ page ];
+        }
       }
 
       var results;
@@ -962,10 +977,20 @@ blog2.Blog2 = function(options, callback) {
       };
 
       self.sanitize = function(item) {
-        item.by = self._apos.sanitizeSelect(item.by, [ 'id', 'tag', 'fromPageids' ], 'fromPageIds');
+        item.by = self._apos.sanitizeSelect(item.by, [ 'id', 'tag', 'fromPageIds' ], 'fromPageIds');
         item.tags = self._apos.sanitizeTags(item.tags);
         item.ids = self._apos.sanitizeIds(item.ids);
-        item.fromPageIds = self._apos.sanitizeIds(item.fromPageIds);
+        var fromPageIds = [];
+        if (Array.isArray(item.fromPageIds)) {
+          _.each(item.fromPageIds, function(pageId) {
+            if (typeof(pageId) === 'object') {
+              fromPageIds.push(_.pick(pageId, [ 'value', 'tag' ]));
+            } else {
+              fromPageIds.push(apos.sanitizeId(pageid));
+            }
+          });
+          item.fromPageIds = fromPageIds;
+        }
         item.limit = self._apos.sanitizeInteger(item.limit, 5, 1, 1000);
       };
 
