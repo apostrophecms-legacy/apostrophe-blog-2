@@ -11,6 +11,42 @@ function AposBlog2(options) {
   self.pieceName = options.pieceName;
   self._options = options;
   self._action = options.action;
+  // So we can see the main AposBlog manager object
+  // inside nested constructors
+  var manager = self;
+
+  // Override this method to modify the manager object
+  // for the index fancy page type, for instance by
+  // adding a validate method
+
+  self.extendIndexes = function(indexes) {
+  };
+
+  // Override this method to modify the manager object
+  // for the piece fancy page type, for instance by
+  // adding a validate method
+
+  self.extendPieces = function(pieces) {
+  };
+
+  // Substitute our own constructors that call our
+  // extend methods
+
+  window[getBrowserConstructor(self.indexName)] = function(options) {
+    var self = this;
+    AposFancyPage.call(self, options);
+    apos.afterYield(function() { manager.extendIndexes(self); });
+  };
+
+  window[getBrowserConstructor(self.pieceName)] = function(options, callback) {
+    var self = this;
+    AposFancyPage.call(self, options);
+    apos.afterYield(function() { manager.extendPieces(self); });
+  };
+
+  function getBrowserConstructor(typeName) {
+    return 'Apos' + typeName.charAt(0).toUpperCase() + typeName.substr(1);
+  }
 
   // Add jquery autocomplete of tags to the
   // tag field for aggregation, which is otherwise
@@ -188,11 +224,9 @@ function AposBlog2(options) {
   self.extendBrowseTrash = function(browser) {
   };
 
-  if (options.widget) {
 
-    // So we can see the main AposBlog manager object
-    // inside the widget editor's constructor
-    var manager = self;
+
+  if (options.widget) {
 
     var widgetName = manager._options.widget.name || manager.indexName;
     apos.widgetTypes[widgetName] = {

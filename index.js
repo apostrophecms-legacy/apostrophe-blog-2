@@ -83,6 +83,9 @@ blog2.Blog2 = function(options, callback) {
       greedy: true,
       browser: {
         baseConstruct: 'AposFancyPage',
+        // Construct it on next tick so we have a
+        // chance to create our own subclass in manager.js
+        afterYield: true,
         options: {}
       },
       pageSettingsTemplate: 'indexPageSettings',
@@ -453,7 +456,10 @@ blog2.Blog2 = function(options, callback) {
       // Always an orphan page (not in conventional navigation)
       orphan: true,
       browser: {
-        baseConstruct: 'AposFancyPage'
+        baseConstruct: 'AposFancyPage',
+        // Construct it on next tick so we have a
+        // chance to create our own subclass in manager.js
+        afterYield: true
       },
       pageSettingsTemplate: 'piecePageSettings',
       // So far manager.js seems sufficient, but we could
