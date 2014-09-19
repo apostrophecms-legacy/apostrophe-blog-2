@@ -715,7 +715,7 @@ blog2.Blog2 = function(options, callback) {
           filterCriteria = { _never: true };
         } else {
           var ids = options.fromPageIds;
-          if (typeof(ids) === 'object') {
+          if (typeof(ids[0]) === 'object') {
             page.andFromPagesIds = _.pluck(ids, 'value');
             var relationships = {};
             page.andFromPagesRelationships = relationships;
