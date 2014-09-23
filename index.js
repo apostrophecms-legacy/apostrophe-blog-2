@@ -347,7 +347,10 @@ blog2.Blog2 = function(options, callback) {
 
   self.addCriteria = function(req, criteria, options) {
     if (req.query.tag) {
-      options.tags = [ self._apos.sanitizeString(req.query.tag) ];
+      options.tags = self._apos.sanitizeTags([ req.query.tag ]);
+    }
+    if (req.query.tags) {
+      options.tags = self._apos.sanitizeTags(req.query.tags) ;
     }
 
     self.addDateCriteria(req, criteria, options);
