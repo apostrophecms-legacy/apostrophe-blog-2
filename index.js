@@ -433,6 +433,13 @@ blog2.Blog2 = function(options, callback) {
     }
   };
 
+  // The standard implementation of an 'show' page template for one piece, for your
+  // overriding convenience
+  self.show = function(req, callback) {
+    req.template = self.renderer('show');
+    return self.beforeShow(req, req.page, callback);
+  };
+
   // For easier subclassing, these callbacks are invoked at the last
   // minute before the template is rendered. You may use them to extend
   // the data available in req.extras, etc. To completely override
@@ -787,10 +794,7 @@ blog2.Blog2 = function(options, callback) {
       });
     };
 
-    self.pieces.dispatch = function(req, callback) {
-      req.template = self.renderer('show');
-      return callback(null);
-    };
+    self.pieces.dispatch = self.show;
 
     // Denormalize the publication date and time.
     // Set the "orphan" and "reorganize" flags.
