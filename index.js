@@ -794,7 +794,9 @@ blog2.Blog2 = function(options, callback) {
       });
     };
 
-    self.pieces.dispatch = self.show;
+    self.pieces.dispatch = function(req, callback) {
+      return self.show(req, callback);
+    };
 
     // Denormalize the publication date and time.
     // Set the "orphan" and "reorganize" flags.
