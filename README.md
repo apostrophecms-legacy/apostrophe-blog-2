@@ -72,7 +72,20 @@ Currently Wordpress import does not import categories or tags. Obviously this ne
 
 By default, the importer assumes the main content area of your blog posts is named `body`. This might not be the case in your templates. If not, specify `--body-area=content1`, or whatever your area name is.
 
+#### Mapping [caption] shortcodes to descriptions
+
+By default, a [caption] shortcode becomes the title of the file, and the "showTitles" flag is set on the slideshow.
+
+If you prefer it be treated as a description, pass the `--caption-as-description` option.
+
+#### Newline-to-line-break conversion
+
+By default, Wordpress blogs convert double newlines to paragraph breaks. They do it on the fly, all the time, with a hideously complex function. Yes, it's pretty terrible.
+
+By default, during the import, we convert these to a simple pair of `br` tags.
+
+If your particular Wordpress blog has this feature disabled, specify `--no-autop` during import to prevent this conversion, which is redundant for you.
+
 #### Doing it faster
 
-To do it faster, processing four blog posts at once, specify `--parallel=4`. Be aware this can require much more memory when importing images.
-
+To do it faster, processing four blog posts at once, specify `--parallel=4`. Be aware this can require much more memory when importing images. It may also impose an unacceptable load on the Wordpress site at some point. `4` is a good limit, and only on a laptop or a VPS with plenty of memory.
