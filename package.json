@@ -1,6 +1,6 @@
 {
   "name": "apostrophe-blog-2",
-  "version": "0.5.41",
+  "version": "0.5.43",
   "description": "A next-generation blog for A2. Blogs and blog posts are ordinary pages with a few fancy features, so that blog posts have a natural and obvious permanent URL on the site but aggreation and blog-style browsing are still possible.",
   "main": "index.js",
   "scripts": {
@@ -23,12 +23,16 @@
   },
   "homepage": "https://github.com/punkave/apostrophe-blog-2",
   "dependencies": {
+    "absolution": "~1.0.0",
     "apostrophe-fancy-page": "~0.5.3",
     "async": "0.8.x",
+    "cheerio": "^0.17.0",
     "lodash": "~2.4.1",
-    "rss": "~0.3.2",
-    "absolution": "~1.0.0",
+    "moment": "^2.6.0",
     "random-words": "0.0.1",
-    "moment": "^2.6.0"
+    "request": "^2.44.0",
+    "rss": "~0.3.2",
+    "split-html": "^0.1.0",
+    "xml2js": "^0.4.4"
   }
 }

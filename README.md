@@ -43,3 +43,49 @@ You can do that with the `sources` option when inserting the widget:
 The `sources` option may contain `title`, `tag` and/or `page` in any order. The first option given becomes the default choice.
 
 If you limit the editor to only one source, the dropdown menu is automatically hidden.
+
+## Wordpress Import
+
+You can import content from Wordpress blogs into `apostrophe-blog-2`:
+
+```
+node app apostrophe:import-wordpress-stories wordpress-export-file.xml /my-blog
+```
+
+The first argument must be a Wordpress XML export file. The second argument must be the slug of an existing blog page on your A2 site.
+
+You can generate a Wordpress export file easily:
+
+1. Log into your wordpress site as an admin.
+2. Click "tools."
+3. Click "export."
+4. Select "posts" or "all." NOTE: only blog posts and associated images and video will be imported. Pages are NOT imported.
+5. Save the resulting export file.
+
+### Limitations
+
+Currently Wordpress import does not import categories or tags. Obviously this needs to change. We intend to support options to import a specific category or tag only, and to turn categories and tags into A2 tags.
+
+### Additional Options
+
+#### Changing the body area name
+
+By default, the importer assumes the main content area of your blog posts is named `body`. This might not be the case in your templates. If not, specify `--body-area=content1`, or whatever your area name is.
+
+#### Mapping [caption] shortcodes to descriptions
+
+By default, a [caption] shortcode becomes the title of the file, and the "showTitles" flag is set on the slideshow.
+
+If you prefer it be treated as a description, pass the `--caption-as-description` option.
+
+#### Newline-to-line-break conversion
+
+By default, Wordpress blogs convert double newlines to paragraph breaks. They do it on the fly, all the time, with a hideously complex function. Yes, it's pretty terrible.
+
+By default, during the import, we convert these to a simple pair of `br` tags.
+
+If your particular Wordpress blog has this feature disabled, specify `--no-autop` during import to prevent this conversion, which is redundant for you.
+
+#### Doing it faster
+
+To do it faster, processing four blog posts at once, specify `--parallel=4`. Be aware this can require much more memory when importing images. It may also impose an unacceptable load on the Wordpress site at some point. `4` is a good limit, and only on a laptop or a VPS with plenty of memory.

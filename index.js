@@ -1301,6 +1301,10 @@ blog2.Blog2 = function(options, callback) {
         }
       }, callback);
     };
+    taskName = self._apos.camelName('import wordpress ' + self.pieces.pluralLabel);
+    taskGroups.apostrophe[taskName] = function(apos, argv, callback) {
+      return require('./wordpress.js')(self, argv, callback);
+    };
   });
 
   self._apos.on('addSearchFilters', function(searchFilters) {
