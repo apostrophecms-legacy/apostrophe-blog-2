@@ -1,3 +1,5 @@
+/* jshint node:true */
+
 var xml2js = require('xml2js');
 var fs = require('fs');
 var util = require('util');
@@ -9,11 +11,25 @@ var splitHtml = require('split-html');
 var path = require('path');
 var request = require('request');
 var util = require('util');
+var urls = require('url');
 
 module.exports = function(self, argv, callback) {
   var data;
   var parent;
   var req = self._apos.getTaskReq();
+  var base;
+
+  if (argv.base) {
+    base = argv.base;
+  } // otherwise we'll try to get it from the XML later on
+
+  function resolve(url) {
+    if (!base) {
+      return url;
+    }
+    return urls.resolve(base, url);
+  }
+
   return async.series({
     usage: function(callback) {
       if (argv._.length !== 3)
@@ -45,8 +61,11 @@ module.exports = function(self, argv, callback) {
     },
     insert: function(callback) {
       var count = 0;
+      if ((!base) && (data.rss.channel[0]['wp:base_blog_url'])) {
+        base = data.rss.channel[0]['wp:base_blog_url'][0];
+      }
       var documents = data.rss.channel[0].item;
-      posts = _.filter(documents, function(post) {
+      var posts = _.filter(documents, function(post) {
         return (post['wp:post_type'] && (post['wp:post_type'][0] === 'post'));
       });
 
@@ -54,9 +73,58 @@ module.exports = function(self, argv, callback) {
       return async.eachLimit(posts, argv.parallel || 1, function(post, callback) {
         var html = post['content:encoded'][0];
         count++;
-        console.log(post['title'][0] + ': ' + count + ' of ' + posts.length);
+
         var publishedAt = new Date(post.pubDate[0]);
         var items = [];
+
+        var categories = [];
+        var tags = [];
+
+        categories = _.map(post.category, function(category) {
+          return category._;
+        });
+
+        tags = _.map(post.tag, function(tag) {
+          return tag._;
+        });
+
+        if (argv['with-tag']) {
+          if (!_.contains(tags, argv['with-tag'])) {
+            return setImmediate(callback);
+          }
+        }
+        if (argv['with-category']) {
+          if (!_.contains(categories, argv['with-category'])) {
+            return setImmediate(callback);
+          }
+        }
+
+        if (argv['without-tags']) {
+          var withoutTags = argv['without-tags'].split(/\s*,\s*/);
+          if (_.intersection(tags, withoutTags).length) {
+            return setImmediate(callback);
+          }
+        }
+
+        if (argv['without-categories']) {
+          var withoutCategories = argv['without-categories'].split(/\s*,\s*/);
+          if (_.intersection(categories, withoutCategories).length) {
+            return setImmediate(callback);
+          }
+        }
+
+        if (argv['ignore-tags']) {
+          tags = [];
+        }
+
+        if (argv['ignore-categories']) {
+          categories = [];
+        }
+
+        // a2 does not distinguish tags from categories
+        tags = categories.concat(tags);
+
+        var thumbnail;
 
         return async.series({
           meta: function(callback) {
@@ -79,6 +147,38 @@ module.exports = function(self, argv, callback) {
                     return callback(null);
                   });
                 }
+              } else if (key === 'Image') {
+                var src = resolve(code);
+                // encoding: null to get the binary file as a
+                // buffer rather than a UTF8 string
+                return request(src, { encoding: null }, function(err, response, body) {
+                  if (err || (response.status >= 300)) {
+                    console.error('WARNING: image ' + src + ' not accessible, ignoring');
+                    return setImmediate(callback);
+                  }
+                  var tmp = self._apos.uploadfs.getTempPath();
+                  var name = self._apos.generateId();
+                  tmp += '/' + name;
+                  fs.writeFileSync(tmp, body);
+                  name = path.basename(src);
+                  return self._apos.acceptFiles(req, { path: tmp, name: name }, function(err, infos) {
+                    if (err || (!infos.length)) {
+                      console.error('WARNING: image ' + src + ' downloaded by not accepted by Apostrophe');
+                      return callback(null);
+                    }
+
+                    thumbnail = {
+                      type: 'area',
+                      items: [
+                        {
+                          type: 'slideshow',
+                          ids: [ infos[0]._id ]
+                        }
+                      ]
+                    };
+                    return callback(null);
+                  });
+                });
               }
               return setImmediate(callback);
             }, callback);
@@ -178,7 +278,7 @@ module.exports = function(self, argv, callback) {
                 }
                 // encoding: null to get the binary file as a
                 // buffer rather than a UTF8 string
-                return request(src, { encoding: null }, function(err, response, body) {
+                return request(resolve(src), { encoding: null }, function(err, response, body) {
                   if (err || (response.status >= 300)) {
                     console.error('WARNING: image ' + src + ' not accessible, ignoring');
                     return setImmediate(callback);
@@ -189,10 +289,7 @@ module.exports = function(self, argv, callback) {
                   fs.writeFileSync(tmp, body);
                   name = path.basename(src);
                   return self._apos.acceptFiles(req, { path: tmp, name: name }, function(err, infos) {
-                    if (err) {
-                      return callback(err);
-                    }
-                    if (!infos.length) {
+                    if (err || (!infos.length)) {
                       console.error('WARNING: image ' + src + ' downloaded by not accepted by Apostrophe');
                       return callback(null);
                     }
@@ -209,7 +306,7 @@ module.exports = function(self, argv, callback) {
                         showDescriptions = true;
                       } else {
                         file.title = title;
-                        showTitle = true;
+                        showTitles = true;
                       }
                     }
                     return self._apos.files.update({
@@ -233,7 +330,6 @@ module.exports = function(self, argv, callback) {
               } else if ($('wpsyoutube').length || $('wpsvimeo').length) {
                 // simple video shortcodes
                 var url = $('wpsyoutube, wpsvimeo').text().trim();
-                console.log(post.title[0] + ' has video');
                 return self._apos.acceptVideo(req, { url: url }, function(err, video) {
                   if (err) {
                     console.error('WARNING: Apostrophe couldn\'t figure out what to do with this embedded item: ' + url);
@@ -279,7 +375,7 @@ module.exports = function(self, argv, callback) {
                 return async.series({
                   get: function(callback) {
                     return async.eachSeries(images, function(image, callback) {
-                      return request(image, { encoding: null }, function(err, response, body) {
+                      return request(resolve(image), { encoding: null }, function(err, response, body) {
                           if (err) {
                             console.error(err);
                             return setImmediate(callback);
@@ -297,8 +393,9 @@ module.exports = function(self, argv, callback) {
                   },
                   accept: function(callback) {
                     return self._apos.acceptFiles(req, candidates, function(err, infos) {
-                      if (err) {
-                        return callback(err);
+                      if (err || (!infos.length)) {
+                        console.error('WARNING: image ' + src + ' downloaded by not accepted by Apostrophe');
+                        return callback(null);
                       }
                       items.push({
                         type: 'slideshow',
@@ -316,13 +413,25 @@ module.exports = function(self, argv, callback) {
                 return callback(err);
               }
               var bodyArea = argv['body-area'] || 'body';
+              var credit;
+              var creator = post['dc:creator'];
+              if (creator && creator.length) {
+                credit = creator[0];
+              }
               var a2Post = {
+                tags: tags,
                 type: self.pieceName,
                 title: post.title[0],
                 publishedAt: publishedAt,
                 publicationDate: moment(publishedAt).format('YYYY-MM-DD'),
                 publicationTime: moment(publishedAt).format('HH:MM')
               };
+              if (credit) {
+                a2Post.credit = credit;
+              }
+              if (thumbnail) {
+                a2Post.thumbnail = thumbnail;
+              }
               a2Post[bodyArea] = {
                 type: 'area',
                 items: items
