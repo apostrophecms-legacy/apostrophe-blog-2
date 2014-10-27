@@ -62,11 +62,61 @@ You can generate a Wordpress export file easily:
 4. Select "posts" or "all." NOTE: only blog posts and associated images and video will be imported. Pages are NOT imported.
 5. Save the resulting export file.
 
-### Limitations
+### Preserving author credit
 
-Currently Wordpress import does not import categories or tags. Obviously this needs to change. We intend to support options to import a specific category or tag only, and to turn categories and tags into A2 tags.
+The Wordpress import task will migrate in the author's name for each blog post via the `dc:creator` setting found in the XML export file. This field is assigned to the `credit` property of each post in A2. You can add that field to your `pieces` schema as a string field to make it editable on your A2 site.
 
-### Additional Options
+### Additional options
+
+### Specifying the base URL for relative links
+
+Usually the `wp:base_blog_url` found in the XML export file is good enough to resolve relative URLs to image files if any are encountered in the XML.
+
+However some sites are too tricky with redirects and subdomains for their own good, and you'll need to tell the import task what the real URL of the original Wordpress site is:
+
+`--base=http://magazine.example.com`
+
+#### Ignoring tags
+
+By default Wordpress tags are imported as A2 tags. To prevent this, use the `--ignore-tags` option.
+
+#### Ignoring categories
+
+Wordpress categories are also imported as A2 tags. You can prevent this with the `--ignore-categories` option.
+
+#### Importing only posts with a specific tag
+
+Just use:
+
+`--with-tag="Zamfir Pipes"`
+
+Yes, you may use this option and `--ignore-tags` at the same time.
+
+#### Importing only posts with a specific category
+
+I bet you can guess:
+
+`--with-category="French Press"`
+
+Yes, it is safe to combine this with `--ignore-categories`.
+
+#### Importing only posts that do not have certain tags
+
+`--without-tags="tag1,tag2,tag3"`
+
+Useful if you need to export a "misc" blog with all the content you didn't export to other blogs via `--with-tag`.
+
+This option does not currently work with tags that contain
+commas in their names.
+
+#### Importing only posts that do not have certain categories
+
+Useful if you need to export a "misc" blog with all the content you didn't export to other blogs via `--with-category`.
+
+`--without-categories="cat1,cat2,cat3"
+
+This option does not currently work with categories that contain
+commas in their names.
 
 #### Changing the body area name
 
