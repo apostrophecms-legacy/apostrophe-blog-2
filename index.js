@@ -1,3 +1,5 @@
+/* jshint node:true */
+
 var async = require('async');
 var _ = require('lodash');
 var fancyPage = require('apostrophe-fancy-page');
@@ -103,9 +105,9 @@ blog2.Blog2 = function(options, callback) {
         idsField: 'andFromPagesIds',
         relationship: [
           {
-            name: 'tag',
-            label: 'With this tag (optional)',
-            type: 'string',
+            name: 'tags',
+            label: 'With any of these tags (optional)',
+            type: 'tags',
           }
         ],
         relationshipsField: 'andFromPagesRelationships',
@@ -372,7 +374,7 @@ blog2.Blog2 = function(options, callback) {
   self.addDateCriteria = function(req, criteria, options) {
     if (req.remainder.length) {
       // Spot a year and month in the URL to implement filtering by month
-      matches = req.remainder.match(/^\/(\d+)\/(\d+)$/);
+      var matches = req.remainder.match(/^\/(\d+)\/(\d+)$/);
 
       // activeYear and activeMonth = we are filtering to that month.
       // thisYear and thisMonth = now (as in today).
@@ -549,17 +551,20 @@ blog2.Blog2 = function(options, callback) {
     // Given an array of index pages, yields a mongodb
     // criteria object which will pass both the pieces for the
     // original pages and the pieces for any pages they aggregate
-    // with, taking tag filtering into account.
+    // with, taking tag filtering into account. This is complex
+    // to implement, but allows the end user to never worry
+    // about the details of what another blog is already
+    // aggregating.
 
     self.aggregateCriteria = function(req, _pages, callback) {
 
       // Shallow copy to avoid modifying argument
-      pages = _.clone(_pages);
+      var pages = _.clone(_pages);
 
       var done = false;
 
       var fetched = {};
-      var tagsByPageId = {};
+      var tagPathsByPageId = {};
       var recursed = {};
 
       _.each(pages, function(page) {
@@ -627,7 +632,7 @@ blog2.Blog2 = function(options, callback) {
             recurseTags(page, [], []);
           });
 
-          function recurseTags(page, tags, antecedents) {
+          function recurseTags(page, tagPath, antecedents) {
             if (_.contains(antecedents, page._id)) {
               // Avoid infinite loops. We don't forbid
               // visiting the same page twice along different
@@ -640,34 +645,42 @@ blog2.Blog2 = function(options, callback) {
               var _page = pagesById[id];
               if (_page) {
                 var rel = ((page.andFromPagesRelationships || {})[id]) || {};
+
+                // tagList: an array of tags, one or more must appear.
+                // tagPath: an array of <tagList>, all of which must be satisfied to follow the path.
+                // tagPaths: an array of <tagPath>, any of one of which is sufficient to satisfy the whole.
+                // tagPathsByPageId: tagPaths, mapped by page id.
+
                 var newTags;
-                if (rel.tag) {
-                  // Calling filterTag here is a lazy workaround
+                if (rel.tags && rel.tags.length) {
+                  // Calling sanitizeTags here is a lazy workaround
                   // for not having a true tag field type for
                   // relationships. Makes sure the case is right.
                   // -Tom
-                  newTags = [ self._apos.filterTag(rel.tag) ];
-                } else {
-                  newTags = [];
+                  newTags = rel.tags;
                 }
-                recurseTags(pagesById[id], tags.concat(newTags), antecedents.concat(page._id));
+                // We can't use concat here because
+                // we really do want an array of arrays
+                var nextTagPath = _.clone(tagPath);
+                if (newTags) {
+                  nextTagPath.push(newTags);
+                }
+                recurseTags(pagesById[id], nextTagPath, antecedents.concat(page._id));
               }
             });
-            if (!tagsByPageId[page._id]) {
-              tagsByPageId[page._id] = [];
+            if (!tagPathsByPageId[page._id]) {
+              tagPathsByPageId[page._id] = [];
             }
-            tagsByPageId[page._id].push(tags);
+            tagPathsByPageId[page._id].push(tagPath);
           }
 
-          // Yield a series of "or" clauses for the
-          // pages we've found
           var clauses = [];
           _.each(pages, function(page) {
             var clause = {
               path: new RegExp('^' + RegExp.quote(page.path + '/')),
               level: page.level + 1
             };
-            var tagPaths = tagsByPageId[page._id];
+            var tagPaths = tagPathsByPageId[page._id];
             if (tagPaths) {
               if (_.find(tagPaths, function(tagPath) {
                 return !tagPath.length;
@@ -679,9 +692,14 @@ blog2.Blog2 = function(options, callback) {
                 // queries more, reducing more redundancies.
                 // Then again mongodb might do it for us and
                 // it's rare for this to get really out of hand
+                var orClauses = [];
                 _.each(tagPaths, function(tagPath) {
-                  clause.tags = { $all: tagPath };
+                  var andClauses = _.map(tagPath, function(tagList) {
+                    return { tags: { $in: tagList } };
+                  });
+                  orClauses.push({ $and: andClauses });
                 });
+                clause.$or = orClauses;
               }
             }
             clauses.push(clause);
@@ -730,7 +748,7 @@ blog2.Blog2 = function(options, callback) {
             var relationships = {};
             page.andFromPagesRelationships = relationships;
             _.each(ids, function(id) {
-              relationships[id.value] = { tag: id.tag };
+              relationships[id.value] = { tags: id.tags };
             });
           } else {
             page.andFromPagesIds = ids;
@@ -985,6 +1003,9 @@ blog2.Blog2 = function(options, callback) {
           } else {
             options.limit = 5;
           }
+          // Despite the name these are objects
+          // with "value" (id) and "tags" (tag array)
+          // properties. -Tom
           if (item.fromPageIds && item.fromPageIds.length) {
             options.fromPageIds = item.fromPageIds;
           }
@@ -999,9 +1020,11 @@ blog2.Blog2 = function(options, callback) {
         if (Array.isArray(item.fromPageIds)) {
           _.each(item.fromPageIds, function(pageId) {
             if (typeof(pageId) === 'object') {
-              fromPageIds.push(_.pick(pageId, [ 'value', 'tag' ]));
+              var value = _.pick(pageId, [ 'value', 'tags' ]);
+              value.tags = self._apos.sanitizeTags(value.tags);
+              fromPageIds.push(value);
             } else {
-              fromPageIds.push(apos.sanitizeId(pageid));
+              fromPageIds.push(self._apos.sanitizeId(pageId));
             }
           });
           item.fromPageIds = fromPageIds;
@@ -1298,6 +1321,61 @@ blog2.Blog2 = function(options, callback) {
       name: self.pieceName,
       label: self.pieces.pluralLabel
     });
+  });
+
+  self._apos.addMigration(self.name + 'MultitagWidget', function(callback) {
+    var count = 0;
+    return self._apos.forEachItem(function(page, name, area, n, item, callback) {
+      if (item.type !== self.name) {
+        return callback(null);
+      }
+      if (item.fromPageIds) {
+        var changed = false;
+        _.each(item.fromPageIds, function(pi) {
+          if (pi.tag) {
+            pi.tags = [ pi.tag ];
+            delete pi.tag;
+            changed = true;
+          }
+        });
+        if (!changed) {
+          return callback(null);
+        }
+        count++;
+        if (count === 1) {
+          console.log(self.name + ' widget migrating from single tag to multitag');
+        }
+        var value = { $set: {} };
+        // ♥ dot notation
+        value.$set[name + '.items.' + n] = item;
+        return self._apos.pages.update({ _id: page._id }, value, callback);
+      }
+    }, callback);
+  });
+
+  self._apos.addMigration(self.name + 'MultitagPage', function(callback) {
+    var needed = false;
+    return self._apos.forEachPage({ type: self.indexName }, function(page, callback) {
+      if (!page.andFromPagesRelationships) {
+        return callback(null);
+      }
+      var changed = false;
+      _.each(page.andFromPagesRelationships, function(val) {
+        if (val.tag) {
+          val.tags = [ val.tag ];
+          delete val.tag;
+          changed = true;
+        }
+      });
+      if (!changed) {
+        return callback(null);
+      }
+      if (!needed) {
+        needed = true;
+        console.log('Migrating pages of type ' + self.indexName + ' to allow multiple tags per aggregated page');
+      }
+      return self._apos.pages.update({ _id: page._id }, { $set: { andFromPagesRelationships: page.andFromPagesRelationships } }, callback);
+    }, callback);
   });
 
   if (callback) {

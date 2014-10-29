@@ -1,3 +1,6 @@
+/* jshint jquery:true, browser:true */
+/* global apos, AposFancyPage, aposPages, alert, _, AposWidgetEditor */
+
 // JavaScript which enables editing of this module's content belongs here.
 
 // We could define AposBlogPost too if we wanted it.
@@ -282,7 +285,7 @@ function AposBlog2(options) {
           }
           self.$by.val(self.data.by || self.$by.find('[value]:first').attr('value'));
 
-          self.$tags = self.$el.find('[data-name="tags"]');
+          self.$tags = self.$el.findSafe('[data-name="tags"]', '[data-by="fromPageIds"]');
           apos.enableTags(self.$tags, self.data.tags);
           self.$limitByTag = self.$el.findByName('limitByTag');
           self.$limitByTag.val(self.data.limitByTag);
@@ -327,6 +330,17 @@ function AposBlog2(options) {
 
           self.pending++;
 
+          // Implement custom relationship field types (tags)
+          self.$fromPageIds.on('afterAddItem', function(e, item, $item) {
+            var $tags = $item.findSafe('[data-name="tags"]', '[data-selective]');
+            apos.enableTags($tags, item.tags || []);
+          });
+
+          self.$fromPageIds.on('afterGetItem', function(e, item, $item) {
+            var $tags = $item.findSafe('[data-name="tags"]', '[data-selective]');
+            item.tags = $tags.selective('get');
+          });
+
           self.$fromPageIds.selective({
             data: self.data.fromPageIds || [],
             extras: true,
@@ -336,6 +350,7 @@ function AposBlog2(options) {
               $.jsonCall('/apos-pages/autocomplete', r, callback);
             },
             sortable: false,
+            nestGuard: '[data-selective]',
             afterSet: function() {
               self.completedTask();
             }
