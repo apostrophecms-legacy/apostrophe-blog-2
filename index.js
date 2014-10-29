@@ -356,7 +356,6 @@ blog2.Blog2 = function(options, callback) {
     // Start and End Date are looking for UTC date like publicationDate
     // TODO: Allow this to accept any date.
     if (req.query.startDate || req.query.endDate) {
-      console.log("Yep. You got a date.");
       if (req.query.startDate && !req.query.endDate) {
         criteria.publicationDate = {$gte: req.query.startDate};
       } else if (!req.query.startDate && req.query.endDate) {
@@ -364,7 +363,6 @@ blog2.Blog2 = function(options, callback) {
       } else if (req.query.startDate && req.query.endDate) {
         criteria.publicationDate = {$gte: req.query.startDate, $lte: req.query.endDate};
       }
-      console.log("Your options are now: ", options);
     }
 
     self.addDateCriteria(req, criteria, options);
