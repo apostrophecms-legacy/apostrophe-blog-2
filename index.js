@@ -355,6 +355,18 @@ blog2.Blog2 = function(options, callback) {
       options.tags = self._apos.sanitizeTags(req.query.tags) ;
     }
 
+    // Start and End Date are looking for UTC date like publicationDate
+    // TODO: Allow this to accept any date.
+    if (req.query.startDate || req.query.endDate) {
+      if (req.query.startDate && !req.query.endDate) {
+        criteria.publicationDate = {$gte: req.query.startDate};
+      } else if (!req.query.startDate && req.query.endDate) {
+        criteria.publicationDate = {$lte: req.query.endDate};
+      } else if (req.query.startDate && req.query.endDate) {
+        criteria.publicationDate = {$gte: req.query.startDate, $lte: req.query.endDate};
+      }
+    }
+
     self.addDateCriteria(req, criteria, options);
 
     options.fromPages = [ req.page ];
