@@ -136,6 +136,12 @@ By default, during the import, we convert these to a simple pair of `br` tags.
 
 If your particular Wordpress blog has this feature disabled, specify `--no-autop` during import to prevent this conversion, which is redundant for you.
 
+#### Converting creator names
+
+The `dc:creator` setting from Wordpress is normally imported directly into the `credit` field in A2. If you wish, you can specify a CSV file in which the first column is the `dc:creator` value (the Wordpress username) and the second column is the `credit` property to store in A2. Just use:
+
+`--creator-to-credit=filename.csv`
+
 #### Doing it faster
 
-To do it faster, processing four blog posts at once, specify `--parallel=4`. Be aware this can require much more memory when importing images. It may also impose an unacceptable load on the Wordpress site at some point. `4` is a good limit, and only on a laptop or a VPS with plenty of memory.
+To import the blog faster, processing four blog posts at once, specify `--parallel=4`. Be aware this can require much more memory when importing images. It may also impose an unacceptable load on the Wordpress site at some point. `4` is a good limit, and only on a laptop or a VPS with plenty of memory.

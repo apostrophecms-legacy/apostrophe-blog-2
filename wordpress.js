@@ -10,7 +10,6 @@ var cheerio = require('cheerio');
 var splitHtml = require('split-html');
 var path = require('path');
 var request = require('request');
-var util = require('util');
 var urls = require('url');
 
 module.exports = function(self, argv, callback) {
@@ -30,6 +29,8 @@ module.exports = function(self, argv, callback) {
     return urls.resolve(base, url);
   }
 
+  var creatorToCredit;
+
   return async.series({
     usage: function(callback) {
       if (argv._.length !== 3)
@@ -37,6 +38,25 @@ module.exports = function(self, argv, callback) {
         return callback('The first argument must be a Wordpress XML export filename. The second argument must be the slug of an existing blog page on your A2 site.');
       }
       return callback(null);
+    },
+    getCreatorToCredit: function(callback) {
+      if (!argv['creator-to-credit']) {
+        return setImmediate(callback);
+      }
+      var parse = require('csv-parse');
+      var data = fs.readFileSync(argv['creator-to-credit'], 'utf8');
+      return parse(data, {}, function(err, _info) {
+        if (err) {
+          return callback(err);
+        }
+        creatorToCredit = {};
+        _.each(_info, function(row) {
+          if (row.length >= 2) {
+            creatorToCredit[row[0]] = row[1];
+          }
+        });
+        return callback(null);
+      });
     },
     getParent: function(callback) {
       return self.indexes.getOne(req, { slug: argv._[2] }, {}, function(err, _parent) {
@@ -417,6 +437,9 @@ module.exports = function(self, argv, callback) {
               var creator = post['dc:creator'];
               if (creator && creator.length) {
                 credit = creator[0];
+              }
+              if (creatorToCredit && _.has(creatorToCredit, credit)) {
+                credit = creatorToCredit[credit];
               }
               var a2Post = {
                 tags: tags,
