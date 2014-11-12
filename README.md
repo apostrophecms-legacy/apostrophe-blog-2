@@ -38,7 +38,7 @@ By default, the date is part of the slug of each post:
 /my/blog/2014/11/12/wednesday-update
 ```
 
-If this doesn't suit your needs, just set the `datesInSlugs` option to `false`.
+If this doesn't suit your needs, just set the `dateInSlug` option to `false`.
 
 If you are reading this late and already have content with dates, you can remove them:
 
@@ -54,7 +54,7 @@ If you change your mind and want to add dates back, just run:
 node app apostrophe:add-dates-to-blog-posts
 ```
 
-Either way, be sure to set the `datesInSlugs` option correctly in your module configuration to ensure future posts behave as you expect.
+Either way, be sure to set the `dateInSlug` option correctly in your module configuration to ensure future posts behave as you expect.
 
 ## Limiting Choices in the Widget
 
