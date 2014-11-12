@@ -30,6 +30,32 @@ For now, subclassing of blog-2 is fairly simple, though it requires some configu
   }
 ```
 
+## Do you like dates in slugs?
+
+By default, the date is part of the slug of each post:
+
+```
+/my/blog/2014/11/12/wednesday-update
+```
+
+If this doesn't suit your needs, just set the `datesInSlugs` option to `false`.
+
+If you are reading this late and already have content with dates, you can remove them:
+
+```
+node app apostrophe:remove-dates-from-blog-posts
+```
+
+(Note: if you are subclassing, the name of the task depends on your `pieceName` setting. Type `node app apostrophe:help` to list available tasks.)
+
+If you change your mind and want to add dates back, just run:
+
+```
+node app apostrophe:add-dates-to-blog-posts
+```
+
+Either way, be sure to set the `datesInSlugs` option correctly in your module configuration to ensure future posts behave as you expect.
+
 ## Limiting Choices in the Widget
 
 Sometimes you won't want the editor to have their pick of title, tag and particular blogs as sources for a particular widget. For instance, you might want to restrict to title only for simplicity.

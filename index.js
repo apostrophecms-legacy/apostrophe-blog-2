@@ -854,18 +854,26 @@ blog2.Blog2 = function(options, callback) {
       }
 
       if (self._dateInSlug) {
-        var datePath = piece.publicationDate.replace(/-/g, '/');
-        var dateSlugRegex = /\/(\d\d\d\d\/\d\d\/\d\d\/)?([^\/]+)$/;
-        var matches = piece.slug.match(dateSlugRegex);
-        if (!matches) {
-          // This shouldn't happen, but don't crash over it
-          console.error("I don't understand how to add a date to this slug: " + piece.slug);
+        self.pieces.addDateToSlug(piece);
+      }
+
+      return callback(null);
+    };
+
+    self.pieces.addDateToSlug = function(piece, remove) {
+      var datePath = piece.publicationDate.replace(/-/g, '/');
+      var dateSlugRegex = /\/(\d\d\d\d\/\d\d\/\d\d\/)?([^\/]+)$/;
+      var matches = piece.slug.match(dateSlugRegex);
+      if (!matches) {
+        // This shouldn't happen, but don't crash over it
+        console.error("I don't understand how to add a date to this slug: " + piece.slug);
+      } else {
+        if (remove) {
+          piece.slug = piece.slug.replace(dateSlugRegex, '/' + matches[2]);
         } else {
           piece.slug = piece.slug.replace(dateSlugRegex, '/' + datePath + '/' + matches[2]);
         }
       }
-
-      return callback(null);
     };
 
     // If the user specifies a new parent via the _newParentId virtual
@@ -1255,7 +1263,6 @@ blog2.Blog2 = function(options, callback) {
     }, callback);
   });
 
-
   self._apos.on('tasks:register', function(taskGroups) {
     // Task name depends on what we're generating! Otherwise
     // subclasses with a different piece type crush the generate-blog-posts task
@@ -1325,6 +1332,14 @@ blog2.Blog2 = function(options, callback) {
     taskName = self._apos.camelName('import wordpress ' + self.pieces.pluralLabel);
     taskGroups.apostrophe[taskName] = function(apos, argv, callback) {
       return require('./wordpress.js')(self, argv, callback);
+    };
+    taskName = self._apos.camelName('add date to ' + self.pieces.pluralLabel);
+    taskGroups.apostrophe[taskName] = function(apos, argv, callback) {
+      return require('./addDateTo.js')(self, argv, callback);
+    };
+    taskName = self._apos.camelName('remove date from ' + self.pieces.pluralLabel);
+    taskGroups.apostrophe[taskName] = function(apos, argv, callback) {
+      return require('./removeDateFrom.js')(self, argv, callback);
     };
   });
 
