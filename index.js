@@ -688,6 +688,12 @@ blog2.Blog2 = function(options, callback) {
 
           var clauses = [];
           _.each(pages, function(page) {
+            if (!page.path) {
+              // A virtual "page" which aggregates
+              // others, to implement blog widgets. It
+              // has no path and children of its own
+              return;
+            }
             var clause = {
               path: new RegExp('^' + RegExp.quote(page.path + '/')),
               level: page.level + 1
