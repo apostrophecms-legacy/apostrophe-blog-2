@@ -374,6 +374,10 @@ blog2.Blog2 = function(options, callback) {
     if (req.query.search) {
       options.search = self._apos.sanitizeString(req.query.search);
     }
+    //The behavior is either relevance or date(which is default and set later)
+    if (req.query.sort === 'relevance') {
+      options.sort = 'search';
+    }
 
     // Admins have to be able to see unpublished content because they have to get
     // to it to edit it and there is no "manage" dialog needed anymore
@@ -440,7 +444,9 @@ blog2.Blog2 = function(options, callback) {
       // this still works if the month is already 11, you can roll over
       criteria.publishedAt = { $gte: new Date(year, month, 1), $lt: new Date(year, month + 1, 1) };
       // When showing content by month we switch to ascending dates
-      options.sort = { publishedAt: 1 };
+      if (!options.sort){
+        options.sort = { publishedAt: 1 };
+      }
     }
     function pad(s, n) {
       return self._apos.padInteger(s, n);
