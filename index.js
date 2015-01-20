@@ -100,7 +100,7 @@ blog2.Blog2 = function(options, callback) {
     indexesOptions.addFields = [
       {
         name: '_andFromPages',
-        label: 'And From These Blogs',
+        label: 'And From These ' + self.pluralIndexLabel,
         type: 'joinByArray',
         idsField: 'andFromPagesIds',
         relationship: [
@@ -111,7 +111,7 @@ blog2.Blog2 = function(options, callback) {
           }
         ],
         relationshipsField: 'andFromPagesRelationships',
-        withType: 'blog'
+        withType: self.indexName
       }
     ].concat(indexesOptions.addFields || []);
 
@@ -527,8 +527,8 @@ blog2.Blog2 = function(options, callback) {
       {
         name: '_parent',
         type: 'joinByOne',
-        label: 'Move to Another Blog',
-        placeholder: 'Type the name of the blog',
+        label: 'Move to Another ' + self.indexLabel,
+        placeholder: 'Type the name of the ' + self.indexLabel.toLowerCase(),
         withType: self.indexName,
         idField: '_newParentId',
         getOptions: {
