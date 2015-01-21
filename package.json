@@ -33,7 +33,7 @@
     "random-words": "0.0.1",
     "request": "^2.44.0",
     "rss": "~0.3.2",
-    "split-html": "^0.1.0",
+    "split-html": "~1.0.0",
     "xml2js": "^0.4.4"
   }
 }
