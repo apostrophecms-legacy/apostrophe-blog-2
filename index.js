@@ -179,6 +179,12 @@ blog2.Blog2 = function(options, callback) {
           }
           var distinctOptions = _.cloneDeep(options);
           distinctOptions.getDistinct = 'tags';
+
+          // When getting tags, we want all the tags, so we'll
+          // need to ignore any queried tags.
+          if (distinctOptions.tags){
+            delete distinctOptions.tags;
+          }
           return self.pieces.get(req, criteria, distinctOptions, function(err, tags) {
             if (err) {
               return callback(err);
