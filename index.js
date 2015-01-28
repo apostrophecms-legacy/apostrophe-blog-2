@@ -806,6 +806,10 @@ blog2.Blog2 = function(options, callback) {
           if (options.publishedAt === 'any') {
             // Do not add our usual criteria for publication date. Note
             // that userCriteria may still examine publication date
+          } else if (options.publishedAt === 'future') {
+            // Allow, in the traditional get, the option to just get
+            // future posts. Useful for custom, in-page admin ui.
+            filterCriteria.publishedAt = { $gte: new Date() };
           } else {
             filterCriteria.publishedAt = { $lte: new Date() };
           }
