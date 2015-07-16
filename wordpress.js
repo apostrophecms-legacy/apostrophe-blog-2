@@ -258,8 +258,14 @@ module.exports = function(self, argv, callback) {
                 //
                 // Offer an option not to do this since a few
                 // Wordpress blogs may have it turned off. -Tom
+                //
+                // Also offer an option to treat every newline as
+                // a <br />, which may be suitable for sites that
+                // display poetry.
 
-                if (!argv['no-autop']) {
+                if (argv['newline-br']) {
+                  fragment = fragment.replace(/\r?\n/g, '<br />\n');
+                } else if (!argv['no-autop']) {
                   fragment = fragment.replace(/\r?\n\r?\n/g, '<br />\n<br />\n');
                 }
 
