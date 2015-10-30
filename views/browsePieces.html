@@ -1,0 +1,39 @@
+{% extends 'baseModal.html' %}
+{% include 'uiMacros.html' %}
+{% include 'snippets:snippetMacros.html' %}
+
+{% block modalClass %}
+  {{ browsePiecesClass }} apos-ui-modal-no-sidebar
+{% endblock %}
+
+{% block modalLabel %}
+  {{ __('Browse %s', __(pluralLabel) | e ) }}
+{% endblock %}
+
+{% block modalFilters %}
+  <div class="apos-ui-modal-filters-inner">
+    {{ snippetFilters() }}
+  </div>
+
+{% endblock %}
+
+{% block modalControls %}
+  {{ renderProgressBtn({dataAttrs: 'data-cancel', float: 'left', label: 'Done', arrow: 'left'}) }}
+{% endblock %}
+
+{% block modalBody %}
+  <table data-items class="apos-manage-table">
+    <tr>
+      <th data-title>{{ __('Title') }}</th>
+      <th data-date>{{ __('Date') }}</th>
+    </tr>
+    <tr class="apos-template" data-item>
+      <td>
+        <span><a href="#" data-title>{{ __('Sample Title') }}</a></span>
+      </td>
+      <td><span data-date></span></td>
+    </tr>
+  </table>
+  {# Container for pager, which gets rendered here by js #}
+  <div data-pager-box></div>
+{% endblock %}

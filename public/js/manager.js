@@ -12,6 +12,7 @@ function AposBlog2(options) {
   self.indexName = options.indexName;
   self.pieceLabel = options.pieceLabel;
   self.pieceName = options.pieceName;
+  self.pluralPieceLabel = options.pluralPieceLabel;
   self._options = options;
   self._action = options.action;
   // So we can see the main AposBlog manager object
@@ -95,8 +96,8 @@ function AposBlog2(options) {
       },
       function (data) {
         if (data.status === 'ok') {
-          alert('Moved to the trash. Select "Browse Trash" from the context menu to recover items from the trash.');
-          window.location.href = aposPages.options.root + data.parent;
+          alert('Moved to the trash. View trash by selecting "Browse '+ self.pluralPieceLabel +'" from the context menu and then use the trash filter.');
+          apos.redirect(data.parent);
         } else {
           alert('An error occurred. Please try again.');
         }
@@ -206,7 +207,7 @@ function AposBlog2(options) {
           function (data) {
             if (data.status === 'ok') {
               alert('Restored as an unpublished draft.');
-              window.location.href = aposPages.options.root + data.slug;
+              apos.redirect(data.slug);
             } else {
               alert('An error occurred. Please try again.');
             }
@@ -228,6 +229,158 @@ function AposBlog2(options) {
   };
 
 
+  $('body').on('click', '[data-browse-pieces]', function() {
+    self.browsePieces();
+    return false;
+  });
+
+  /* BROWSE ALL PIECES */
+  self.browsePieces = function() {
+    var $el;
+    var browser = {
+      page: 1,
+      total: 0,
+      perPage: 10,
+      filters: {
+        trash: '0',
+        published: 'any'
+      },
+      $el: null,
+      init: function(callback) {
+        browser.$search = $el.find('[name="search"]');
+        browser.$template = $el.find('[data-item]');
+        browser.$template.remove();
+        browser.$dataItems = $el.find('[data-items]');
+
+        //reset filters
+        $el.find('[data-pill] [data-choice]').removeClass('apos-active');
+        _.each(browser.filters, function(value, filter) {
+          $el.find('[data-pill][data-name="' + filter + '"] [data-choice="' + value + '"]').addClass('apos-active');
+        });
+
+        $el.on('keyup', '[name="search"]', function(e) {
+          if (e.keyCode === 13) {
+            $el.find('[data-search-submit]').trigger('click');
+            return false;
+          }
+        });
+
+        $el.on('click', '[data-search-submit]', function(e) {
+          browser.page = 1;
+          browser.load();
+          return false;
+        });
+
+        $el.on('click', '[data-remove-search]', function() {
+          browser.page = 1;
+          browser.$search.val('');
+          browser.load();
+          return false;
+        });
+
+        // filters
+        $el.on('click', '[data-pill] [data-choice]', function() {
+          var $choice = $(this);
+          var $pill = $choice.closest('[data-pill]');
+          $pill.find('[data-choice]').removeClass('apos-active');
+          $choice.addClass('apos-active');
+          browser.filters[$pill.data('name')] = $choice.attr('data-choice');
+          browser.page = 1;
+          browser.load();
+          return false;
+        });
+
+        $el.on('click', '[data-item]', function() {
+          if ($(this).attr('data-trash')) {
+            if (confirm('Bring this item back from the trash?')) {
+              $.jsonCall(
+                self._action + '/delete',
+                {
+                  slug: $(this).attr('data-slug'),
+                  trash: false
+                },
+                function (data) {
+                  if (data.status === 'ok') {
+                    alert('Restored as an unpublished draft.');
+                    apos.change(self.name);
+                    browser.load();
+                  } else {
+                    alert('An error occurred. Please try again.');
+                  }
+                }
+              );
+            }
+          } else {
+            apos.redirect($(this).attr('data-slug'));
+          }
+          return false;
+        });
+
+        $el.on('click', '[data-page]', function() {
+          browser.page = $(this).attr('data-page');
+          browser.load();
+          return false;
+        });
+
+        return browser.load(callback);
+      },
+      load: function(callback) {
+        $.getJSON(
+          self._action + '/get',
+          {
+            search: browser.$search.val(),
+            skip: (browser.page - 1) * browser.perPage,
+            limit: browser.perPage,
+            trash: browser.filters.trash,
+            published: browser.filters.published
+          },
+          function(data) {
+            if (data.status !== 'ok') {
+              alert('An error occurred. Please try again.');
+              return callback && callback('error');
+            }
+            browser.$dataItems.find('[data-item]:not(.apos-template)').remove();
+            browser.populateItems(data.pages);
+            browser.total = Math.ceil(data.total / browser.perPage);
+            if (browser.total < 1) {
+              browser.total = 1;
+            }
+            browser.pager();
+            return callback && callback(null);
+          }
+        );
+      },
+      populateItems: function(items) {
+        _.each(items, function(result) {
+          var $item = apos.fromTemplate(browser.$template);
+          $item.find('[data-title]').text(result.title);
+          // Show just the date part of the timestamp
+          $item.find('[data-date]').text(result.publicationDate);
+          $item.attr('data-slug', result.slug);
+          if (result.trash) {
+            $item.attr('data-trash', 1);
+          }
+          browser.$dataItems.append($item);
+        });
+      },
+      pager: function() {
+        // Rebuild pager based on 'page' and 'total'
+        $.get('/apos/pager', { page: browser.page, total: browser.total }, function(data) {
+          $el.find('[data-pager-box]').html(data);
+        });
+      }
+    };
+
+    // A hook to extend the piece browser
+    self.extendBrowsePieces(browser);
+    $el = apos.modalFromTemplate('.apos-browse-pieces-' + cssName, browser);
+    browser.$el = $el;
+  }
+
+  /* NOTE: To change the browser fields, simply override this function
+     and change the populateItems method on browser, which takes items as an arg */ 
+  self.extendBrowsePieces = function(browser) {
+  }
 
   if (options.widget) {
 

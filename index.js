@@ -141,9 +141,13 @@ blog2.Blog2 = function(options, callback) {
           label: 'Page Versions'
         },
         {
-          name: 'rescue-' + self._apos.cssName(self.pieceName),
-          label: 'Browse Trash'
+          name: 'browse-pieces',
+          label: 'Browse ' + self.pluralPieceLabel
         },
+        // {
+        //   name: 'rescue-' + self._apos.cssName(self.pieceName),
+        //   label: 'Browse Trash'
+        // },
         {
           name: 'delete-page',
           label: 'Move Entire ' + self.indexLabel + ' to Trash'
@@ -561,12 +565,12 @@ blog2.Blog2 = function(options, callback) {
           label: piecesOptions.label + ' Versions'
         },
         {
-          name: 'delete-' + self._apos.cssName(self.pieceName),
-          label: 'Move to Trash'
+          name: 'browse-pieces',
+          label: 'Browse ' + self.pluralPieceLabel
         },
         {
-          name: 'rescue-' + self._apos.cssName(self.pieceName),
-          label: 'Rescue ' + self.pieceLabel + ' From Trash'
+          name: 'delete-' + self._apos.cssName(self.pieceName),
+          label: 'Move to Trash'
         }
       ]
     });
@@ -959,6 +963,7 @@ blog2.Blog2 = function(options, callback) {
     pieceLabel: self.pieceLabel,
     indexName: self.indexName,
     indexLabel: self.indexLabel,
+    pluralPieceLabel: self.pluralPieceLabel,
     action: self._action,
     widget: widgetOptions
   };
@@ -1156,6 +1161,13 @@ blog2.Blog2 = function(options, callback) {
         pluralLabel: self.pieces.pluralLabel
       }
     });
+    self.pushAsset('template', 'browsePieces', {
+      when: 'user',
+      data: {
+        browsePiecesClass: 'apos-browse-pieces-' + self._apos.cssName(self.pieceName),
+        pluralLabel: self.pieces.pluralLabel
+      }
+    });
   };
 
   // Fetch blog posts the current user is allowed to see.
@@ -1252,6 +1264,7 @@ blog2.Blog2 = function(options, callback) {
           piece.slug = piece.slug.replace(/\/♻[^\/]+$/, function(match) {
             return match.replace(/^\/♻/, '/');
           });
+          piece.published = false; // This was supposed to happen and wasn't
           delete piece.trash;
         }
         return self.pieces.putOne(req, oldSlug, {}, piece, callback);
