@@ -113,6 +113,13 @@ function AposBlog2(options) {
   });
 
   self.browseTrash = function() {
+    var page = apos.data.aposPages.page;
+
+    // Works from the blog page, and also from its subpages
+    // (presumably blog posts)
+    if (page.type !== self.indexName) {
+      var page = apos.data.aposPages.page.parent;
+    }
 
     var $el;
     var browser = {
@@ -120,6 +127,7 @@ function AposBlog2(options) {
       total: 0,
       perPage: 10,
       $el: null,
+      indexId: page._id,
       init: function(callback) {
         browser.$search = $el.find('[name="search"]');
         browser.$template = $el.find('[data-item]');
@@ -166,7 +174,8 @@ function AposBlog2(options) {
             trash: true,
             search: browser.$search.val(),
             skip: (browser.page - 1) * browser.perPage,
-            limit: browser.perPage
+            limit: browser.perPage,
+            fromPageIds: [browser.indexId]
           },
           function(data) {
             if (data.status !== 'ok') {
@@ -229,13 +238,21 @@ function AposBlog2(options) {
   };
 
 
-  $('body').on('click', '[data-browse-pieces]', function() {
+  $('body').on('click', '[data-browse-' + apos.cssName(self.indexName) + ']', function() {
     self.browsePieces();
     return false;
   });
 
   /* BROWSE ALL PIECES */
   self.browsePieces = function() {
+    var page = apos.data.aposPages.page;
+
+    // Works from the blog page, and also from its subpages
+    // (presumably blog posts)
+    if (page.type !== self.indexName) {
+      var page = apos.data.aposPages.page.parent;
+    }
+
     var $el;
     var browser = {
       page: 1,
@@ -245,6 +262,7 @@ function AposBlog2(options) {
         trash: '0',
         published: 'any'
       },
+      indexId: page._id,
       $el: null,
       init: function(callback) {
         browser.$search = $el.find('[name="search"]');
@@ -332,7 +350,8 @@ function AposBlog2(options) {
             skip: (browser.page - 1) * browser.perPage,
             limit: browser.perPage,
             trash: browser.filters.trash,
-            published: browser.filters.published
+            published: browser.filters.published,
+            fromPageIds: [browser.indexId]
           },
           function(data) {
             if (data.status !== 'ok') {

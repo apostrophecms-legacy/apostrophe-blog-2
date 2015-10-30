@@ -141,13 +141,13 @@ blog2.Blog2 = function(options, callback) {
           label: 'Page Versions'
         },
         {
-          name: 'browse-pieces',
+          name: 'browse-' + self._apos.cssName(self.indexName),
           label: 'Browse ' + self.pluralPieceLabel
         },
-        // {
-        //   name: 'rescue-' + self._apos.cssName(self.pieceName),
-        //   label: 'Browse Trash'
-        // },
+        {
+          name: 'rescue-' + self._apos.cssName(self.pieceName),
+          label: 'Browse Trash'
+        },
         {
           name: 'delete-page',
           label: 'Move Entire ' + self.indexLabel + ' to Trash'
@@ -156,6 +156,15 @@ blog2.Blog2 = function(options, callback) {
         // in the pages module only in the case of `req.permissions.admin = true`
       ])
     });
+    
+    // remove the browse trash option if that flag is set
+    // this feature flag is available so we don't scare people with new functionality
+    if (options.hideOldTrashMenu) {
+      indexesOptions.contextMenu = _.filter(indexesOptions.contextMenu,function(menuItem){
+        return (menuItem.name !== 'rescue-' + self._apos.cssName(self.pieceName));
+      });
+    }
+
     fancyPage.FancyPage.call(self.indexes, indexesOptions, null);
 
     // When an index page is visited, fetch the pieces and
@@ -565,7 +574,7 @@ blog2.Blog2 = function(options, callback) {
           label: piecesOptions.label + ' Versions'
         },
         {
-          name: 'browse-pieces',
+          name: 'browse-' + self._apos.cssName(self.indexName),
           label: 'Browse ' + self.pluralPieceLabel
         },
         {
