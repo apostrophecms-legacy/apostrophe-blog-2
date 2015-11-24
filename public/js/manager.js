@@ -92,7 +92,7 @@ function AposBlog2(options) {
       self._action + '/delete',
       {
         slug: slug,
-        trash: true
+        trash: '1'
       },
       function (data) {
         if (data.status === 'ok') {
@@ -175,7 +175,8 @@ function AposBlog2(options) {
             search: browser.$search.val(),
             skip: (browser.page - 1) * browser.perPage,
             limit: browser.perPage,
-            fromPageIds: [browser.indexId]
+            fromPageIds: [browser.indexId],
+            publishedAt: 'any'
           },
           function(data) {
             if (data.status !== 'ok') {
@@ -260,7 +261,7 @@ function AposBlog2(options) {
       perPage: 10,
       filters: {
         trash: '0',
-        published: 'any'
+        published: 'any',
       },
       indexId: page._id,
       $el: null,
@@ -351,6 +352,7 @@ function AposBlog2(options) {
             limit: browser.perPage,
             trash: browser.filters.trash,
             published: browser.filters.published,
+            publishedAt: 'any',
             fromPageIds: [browser.indexId]
           },
           function(data) {
