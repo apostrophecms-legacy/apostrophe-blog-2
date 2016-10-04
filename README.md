@@ -1,3 +1,9 @@
+## NOT FOR NEW PROJECTS
+
+This module is for the 0.5.x version of Apostrophe. The [apostrophe-blog](https://npmjs.org/apostrophe-blog) module has been updated for Apostrophe 2.x.
+
+Some of the use cases of this module are not yet available as a pre-packaged module for 2.x, however you can recreate them using `apostrophe-custom-pages`, a built-in module of 2.x.
+
 # apostrophe-blog-2: a better blog for Apostrophe
 
 This new implementation is based on the idea that blog posts have more in common with pages than with snippets. It simplifies permissions and makes the whole experience more contextual.
