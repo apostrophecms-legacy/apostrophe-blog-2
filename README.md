@@ -1,3 +1,7 @@
+# ⛔️ **DEPRECATED** — do not use for new projects
+
+See [our current docs](https://docs.apostrophecms.org/)
+
 ## NOT FOR NEW PROJECTS
 
 This module is for the 0.5.x version of Apostrophe. The [apostrophe-blog](https://npmjs.org/apostrophe-blog) module has been updated for Apostrophe 2.x.
